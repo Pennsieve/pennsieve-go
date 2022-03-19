@@ -37,5 +37,7 @@ func NewClient(httpClient *http.Client) *Pennsieve {
 	c := &Pennsieve{httpClient: httpClient}
 	c.Organization = &OrganizationService{client: c}
 
+	fmt.Println(viper.AllKeys())
+
 	return c
 }
