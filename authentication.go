@@ -93,7 +93,7 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
 
-	sessionConfig := credentials{
+	sessionConfig := Credentials{
 		apiKey:       s.client.Credentials.apiKey,
 		apiSecret:    s.client.Credentials.apiSecret,
 		Token:        *accessToken,
