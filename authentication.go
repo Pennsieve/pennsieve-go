@@ -29,7 +29,7 @@ type TokenPool struct {
 	AppClientID string `json:"appClientId"`
 }
 
-type credentials struct {
+type Credentials struct {
 	apiKey       string
 	apiSecret    string
 	Token        string
@@ -107,10 +107,10 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	return nil, nil
 }
 
-func (s *AuthenticationService) reAuthenticate() (*credentials, error) {
+func (s *AuthenticationService) reAuthenticate() (*Credentials, error) {
 
 	// Assert that credentials exist
-	var emptyCredentials credentials
+	var emptyCredentials Credentials
 	if s.client.Credentials == emptyCredentials {
 		log.Panicln("Cannot call reAuthenticate without prior Credentials")
 	}
@@ -158,7 +158,7 @@ func (s *AuthenticationService) reAuthenticate() (*credentials, error) {
 
 }
 
-func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*credentials, error) {
+func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*Credentials, error) {
 
 	username := aws.String(apiKey)
 	password := aws.String(apiSecret)
@@ -222,7 +222,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	}
 
 	orgIdInt, _ := strconv.Atoi(orgId)
-	creds := credentials{
+	creds := Credentials{
 		apiKey:       apiKey,
 		apiSecret:    apiSecret,
 		Token:        *accessToken,

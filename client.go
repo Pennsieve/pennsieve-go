@@ -16,7 +16,7 @@ const (
 
 type Client struct {
 	BaseURL     string
-	Credentials credentials
+	Credentials Credentials
 	HTTPClient  *http.Client
 
 	OrganizationNodeId string
