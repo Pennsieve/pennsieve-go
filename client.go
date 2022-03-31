@@ -90,7 +90,11 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 
 		// We are using reAuthenticate instead of refresh pathway as eventually, the refresh-token
 		// also expires and there is no real reason why we don't just re-authenticate.
-		c.Authentication.reAuthenticate()
+		_, err := c.Authentication.reAuthenticate()
+		if err != nil {
+			fmt.Println("Error authenticating")
+			return err
+		}
 	}
 
 	req = req.WithContext(ctx)

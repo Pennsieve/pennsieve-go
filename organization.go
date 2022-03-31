@@ -132,11 +132,9 @@ func (o *OrganizationService) Get(ctx context.Context, id string) (*GetOrganizat
 	res := GetOrganizationResponse{}
 	if err := o.client.sendRequest(ctx, req, &res); err != nil {
 
-		fmt.Println("EROOR: ", err)
+		fmt.Println("ERROR: ", err)
 		return nil, err
 	}
-
-	fmt.Println(res)
 
 	return &res, nil
 }
