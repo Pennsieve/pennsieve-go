@@ -5,19 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"net/http"
 	"time"
 )
 
 const (
-	BaseURLV1        = "https://api.pennsieve.io"
-	DevelopmentURLV1 = "https://api.pennsieve.net"
+	BaseURLV1 = "https://api.pennsieve.io"
 )
 
 type Client struct {
-	BaseURL     string
-	Credentials Credentials
-	HTTPClient  *http.Client
+	BaseURL        string
+	Credentials    Credentials
+	AWSCredentials *cognitoidentity.Credentials
+	HTTPClient     *http.Client
 
 	OrganizationNodeId string
 	OrganizationId     int

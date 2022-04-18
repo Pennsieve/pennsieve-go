@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/golang-jwt/jwt"
 	"log"
@@ -33,6 +34,7 @@ type Credentials struct {
 	apiKey       string
 	apiSecret    string
 	Token        string
+	IdToken      string
 	Expiration   time.Time
 	RefreshToken string
 	IsRefreshed  bool
@@ -45,6 +47,8 @@ type AuthenticationService struct {
 }
 
 func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
+
+	fmt.Println(s.client.BaseURL)
 
 	req, _ := http.NewRequest("GET",
 		fmt.Sprintf("%s/authentication/cognito-config", s.client.BaseURL), nil)
@@ -164,6 +168,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	password := aws.String(apiSecret)
 
 	// Get Cognito Configuration
+	fmt.Println("AUTHSERVICE:", s.client.BaseURL)
 	s.getCognitoConfig()
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
@@ -203,6 +208,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	var organizationNodeId string
 	var orgId string
 	var ok bool
+	var iss string
 
 	if x, found := claims["custom:organization_node_id"]; found {
 		if organizationNodeId, ok = x.(string); !ok {
@@ -221,12 +227,21 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 		log.Panicln("Claim does not contain an OrgID")
 	}
 
+	if x, found := claims["iss"]; found {
+		if iss, ok = x.(string); !ok {
+			log.Panicln("iss is not an int in the claim")
+		}
+	} else {
+		log.Panicln("Claim does not contain an iss")
+	}
+
 	orgIdInt, _ := strconv.Atoi(orgId)
 	creds := Credentials{
 		apiKey:       apiKey,
 		apiSecret:    apiSecret,
 		Token:        *accessToken,
 		RefreshToken: *refreshToken,
+		IdToken:      *idTokenJwt,
 		Expiration:   getTokenExpFromClaim(claims),
 		IsRefreshed:  false,
 	}
@@ -235,7 +250,57 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	s.client.Credentials = creds
 	s.client.OrganizationId = orgIdInt
 
+	// COGNITO IDENTITY CODE
+	fmt.Println(iss)
+
+	fmt.Println("AWS CREDS: ", s.client.AWSCredentials)
+
 	return &creds, nil
+}
+
+// GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
+func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credentials {
+
+	//TODO: Return IdentityPoolId in getCognitoConfig
+
+	// Authenticate with UserPool using API Key and Secret
+	authReponse, _ := s.client.Authentication.Authenticate(s.client.Credentials.apiKey, s.client.Credentials.apiSecret)
+
+	// Create new AWS session
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("us-east-1"),
+	})
+	if err != nil {
+		fmt.Println("Error creating session", err)
+	}
+
+	// Get an identity from Cognito's identity pool using authResponse from userpool
+	svc := cognitoidentity.New(sess)
+	idRes, err := svc.GetId(&cognitoidentity.GetIdInput{
+		IdentityPoolId: aws.String("us-east-1:a980feea-d99b-437d-98b8-dc23b3bb972c"),
+		Logins: map[string]*string{
+			"cognito-idp.us-east-1.amazonaws.com/us-east-1_uCQXlh5nG": aws.String(authReponse.IdToken),
+		},
+	})
+	if err != nil {
+		fmt.Println("Error getting cognito ID:", err)
+	}
+
+	// Exchange identity token for Credentials from Cognito Identity Pool
+	credRes, err := svc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
+		IdentityId: idRes.IdentityId,
+		Logins: map[string]*string{
+			"cognito-idp.us-east-1.amazonaws.com/us-east-1_uCQXlh5nG": aws.String(authReponse.IdToken),
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Update Credentials in the Pennsieve Client
+	s.client.AWSCredentials = credRes.Credentials
+
+	return s.client.AWSCredentials
 }
 
 // getTokenExpFromClaim grabs the token expiration timestamp from claims
