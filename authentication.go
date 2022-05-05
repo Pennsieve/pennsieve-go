@@ -30,14 +30,17 @@ type TokenPool struct {
 	AppClientID string `json:"appClientId"`
 }
 
-type Credentials struct {
-	apiKey       string
-	apiSecret    string
+type APISession struct {
 	Token        string
 	IdToken      string
 	Expiration   time.Time
 	RefreshToken string
 	IsRefreshed  bool
+}
+
+type APICredentials struct {
+	ApiKey    string
+	ApiSecret string
 }
 
 type AuthenticationService struct {
@@ -67,7 +70,7 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	s.getCognitoConfig()
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
-	refreshToken := aws.String(s.client.Credentials.RefreshToken)
+	refreshToken := aws.String(s.client.APISession.RefreshToken)
 
 	params := &cognito.InitiateAuthInput{
 		AuthFlow: aws.String("REFRESH_TOKEN_AUTH"),
@@ -97,37 +100,42 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
 
-	sessionConfig := Credentials{
-		apiKey:       s.client.Credentials.apiKey,
-		apiSecret:    s.client.Credentials.apiSecret,
+	sessionConfig := APISession{
+
 		Token:        *accessToken,
 		RefreshToken: *refreshToken,
 		Expiration:   getTokenExpFromClaim(claims),
 		IsRefreshed:  true,
 	}
 
-	s.client.Credentials = sessionConfig
+	apiConfig := APICredentials{
+		ApiKey:    s.client.APICredentials.ApiKey,
+		ApiSecret: s.client.APICredentials.ApiSecret}
+
+	s.client.APISession = sessionConfig
+	s.client.APICredentials = apiConfig
 
 	return nil, nil
 }
 
-func (s *AuthenticationService) reAuthenticate() (*Credentials, error) {
+func (s *AuthenticationService) reAuthenticate() (*APISession, error) {
 
 	// Assert that credentials exist
-	var emptyCredentials Credentials
-	if s.client.Credentials == emptyCredentials {
+	var emptyCredentials APICredentials
+	if s.client.APICredentials == emptyCredentials {
 		log.Panicln("Cannot call reAuthenticate without prior Credentials")
 	}
 
+	s.getCognitoConfig()
+
 	// Use API-key and Secret from credentials and get new token
-	clientID := aws.String(s.config.TokenPool.AppClientID)
 	params := &cognito.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{
-			"USERNAME": &s.client.Credentials.apiKey,
-			"PASSWORD": &s.client.Credentials.apiSecret,
+			"USERNAME": aws.String(s.client.APICredentials.ApiKey),
+			"PASSWORD": aws.String(s.client.APICredentials.ApiSecret),
 		},
-		ClientId: clientID,
+		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
 
 	sess, _ := session.NewSession(&aws.Config{
@@ -153,16 +161,18 @@ func (s *AuthenticationService) reAuthenticate() (*Credentials, error) {
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
 
-	s.client.Credentials.Token = *accessToken
-	s.client.Credentials.RefreshToken = *refreshToken
-	s.client.Credentials.Expiration = getTokenExpFromClaim(claims)
-	s.client.Credentials.IsRefreshed = true
+	s.client.APISession.Token = *accessToken
+	s.client.APISession.RefreshToken = *refreshToken
+	s.client.APISession.Expiration = getTokenExpFromClaim(claims)
+	s.client.APISession.IsRefreshed = true
 
-	return &s.client.Credentials, nil
+	fmt.Println("Expiration in reauth", s.client.APISession.Expiration, s.client.APICredentials.ApiKey)
+
+	return &s.client.APISession, nil
 
 }
 
-func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*Credentials, error) {
+func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
 
 	username := aws.String(apiKey)
 	password := aws.String(apiSecret)
@@ -236,9 +246,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	}
 
 	orgIdInt, _ := strconv.Atoi(orgId)
-	creds := Credentials{
-		apiKey:       apiKey,
-		apiSecret:    apiSecret,
+	creds := APISession{
 		Token:        *accessToken,
 		RefreshToken: *refreshToken,
 		IdToken:      *idTokenJwt,
@@ -247,7 +255,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	}
 
 	s.client.OrganizationNodeId = organizationNodeId
-	s.client.Credentials = creds
+	s.client.APISession = creds
 	s.client.OrganizationId = orgIdInt
 
 	// COGNITO IDENTITY CODE
@@ -264,7 +272,7 @@ func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credential
 	//TODO: Return IdentityPoolId in getCognitoConfig
 
 	// Authenticate with UserPool using API Key and Secret
-	authReponse, _ := s.client.Authentication.Authenticate(s.client.Credentials.apiKey, s.client.Credentials.apiSecret)
+	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
 
 	// Create new AWS session
 	sess, err := session.NewSession(&aws.Config{
@@ -317,6 +325,8 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 
 	integ, decim := math.Modf(tokenExp)
 	sessionTokenExpiration := time.Unix(int64(integ), int64(decim*(1e9)))
+
+	fmt.Println("exp-date:", sessionTokenExpiration)
 
 	return sessionTokenExpiration
 }

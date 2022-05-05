@@ -16,7 +16,8 @@ const (
 
 type Client struct {
 	BaseURL        string
-	Credentials    Credentials
+	APISession     APISession
+	APICredentials APICredentials
 	AWSCredentials *cognitoidentity.Credentials
 	HTTPClient     *http.Client
 
@@ -26,6 +27,7 @@ type Client struct {
 	Organization   *OrganizationService
 	Authentication *AuthenticationService
 	User           *UserService
+	Dataset        *DatasetService
 }
 
 // NewClient creates a new Pennsieve HTTP client.
@@ -40,6 +42,7 @@ func NewClient() *Client {
 	c.Organization = &OrganizationService{client: c}
 	c.Authentication = &AuthenticationService{client: c}
 	c.User = &UserService{client: c}
+	c.Dataset = &DatasetService{client: c}
 
 	return c
 }
@@ -86,23 +89,25 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
-	if time.Now().After(c.Credentials.Expiration.Add(-5 * time.Minute)) {
+	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
 		fmt.Println("Refreshing token")
 
 		// We are using reAuthenticate instead of refresh pathway as eventually, the refresh-token
-		// also expires and there is no real reason why we don't just re-authenticate.
+		// also expires and there is no real reason why we don't just re-authenticate.`
 		_, err := c.Authentication.reAuthenticate()
 		if err != nil {
 			fmt.Println("Error authenticating")
 			return err
 		}
+	} else {
+		//fmt.Println("Use existing session")
 	}
 
 	req = req.WithContext(ctx)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json; charset=utf-8")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Credentials.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APISession.Token))
 	req.Header.Set("X-ORGANIZATION-ID", c.OrganizationNodeId)
 
 	res, err := c.HTTPClient.Do(req)
