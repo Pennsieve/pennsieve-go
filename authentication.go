@@ -51,8 +51,6 @@ type AuthenticationService struct {
 
 func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
 
-	fmt.Println(s.client.BaseURL)
-
 	req, _ := http.NewRequest("GET",
 		fmt.Sprintf("%s/authentication/cognito-config", s.client.BaseURL), nil)
 
@@ -178,7 +176,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	password := aws.String(apiSecret)
 
 	// Get Cognito Configuration
-	fmt.Println("AUTHSERVICE:", s.client.BaseURL)
 	s.getCognitoConfig()
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
@@ -218,14 +215,13 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	var organizationNodeId string
 	var orgId string
 	var ok bool
-	var iss string
+	//var iss string
 
 	if x, found := claims["custom:organization_node_id"]; found {
 		if organizationNodeId, ok = x.(string); !ok {
 			log.Panicln("Organization Node ID is not a string in the claim")
 		}
 	} else {
-		fmt.Println(claims)
 		log.Panicln("Claim does not contain an organization identifier")
 	}
 
@@ -237,13 +233,13 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 		log.Panicln("Claim does not contain an OrgID")
 	}
 
-	if x, found := claims["iss"]; found {
-		if iss, ok = x.(string); !ok {
-			log.Panicln("iss is not an int in the claim")
-		}
-	} else {
-		log.Panicln("Claim does not contain an iss")
-	}
+	//if x, found := claims["iss"]; found {
+	//	if iss, ok = x.(string); !ok {
+	//		log.Panicln("iss is not an int in the claim")
+	//	}
+	//} else {
+	//	log.Panicln("Claim does not contain an iss")
+	//}
 
 	orgIdInt, _ := strconv.Atoi(orgId)
 	creds := APISession{
@@ -257,11 +253,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	s.client.OrganizationNodeId = organizationNodeId
 	s.client.APISession = creds
 	s.client.OrganizationId = orgIdInt
-
-	// COGNITO IDENTITY CODE
-	fmt.Println(iss)
-
-	fmt.Println("AWS CREDS: ", s.client.AWSCredentials)
 
 	return &creds, nil
 }
@@ -325,8 +316,6 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 
 	integ, decim := math.Modf(tokenExp)
 	sessionTokenExpiration := time.Unix(int64(integ), int64(decim*(1e9)))
-
-	fmt.Println("exp-date:", sessionTokenExpiration)
 
 	return sessionTokenExpiration
 }
