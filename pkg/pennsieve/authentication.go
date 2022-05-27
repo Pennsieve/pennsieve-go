@@ -116,12 +116,12 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	return nil, nil
 }
 
-func (s *AuthenticationService) reAuthenticate() (*APISession, error) {
+func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 
 	// Assert that credentials exist
 	var emptyCredentials APICredentials
 	if s.client.APICredentials == emptyCredentials {
-		log.Panicln("Cannot call reAuthenticate without prior Credentials")
+		log.Panicln("Cannot call ReAuthenticate without prior Credentials")
 	}
 
 	s.getCognitoConfig()
