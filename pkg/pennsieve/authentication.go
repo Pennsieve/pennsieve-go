@@ -165,6 +165,7 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 	s.client.APISession.IsRefreshed = true
 
 	fmt.Println("Expiration in reauth", s.client.APISession.Expiration, s.client.APICredentials.ApiKey)
+	fmt.Printf("\n%s\n", s.client.APISession.Token)
 
 	return &s.client.APISession, nil
 
