@@ -87,13 +87,14 @@ type Publication struct {
 }
 
 type DatasetService struct {
-	client *Client
+	client  *Client
+	baseUrl string
 }
 
 // Get returns a single dataset by id.
 func (d *DatasetService) Get(ctx context.Context, id string) (*GetDatasetResponse, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/%s", d.client.BaseURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/%s", d.baseUrl, id), nil)
 	if err != nil {
 		return nil, err
 	}

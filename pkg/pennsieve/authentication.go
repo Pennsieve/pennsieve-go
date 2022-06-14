@@ -47,12 +47,14 @@ type AuthenticationService struct {
 	client        *Client
 	config        CognitoConfig
 	cognitoClient *cognito.CognitoIdentityProvider
+	BaseUrl       string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }
 
+// getCognitoConfig returns cognito urls from cloud.
 func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
 
 	req, _ := http.NewRequest("GET",
-		fmt.Sprintf("%s/authentication/cognito-config", s.client.BaseURL), nil)
+		fmt.Sprintf("%s/authentication/cognito-config", s.BaseUrl), nil)
 
 	res := CognitoConfig{}
 	if err := s.client.sendUnauthenticatedRequest(req.Context(), req, &res); err != nil {
@@ -116,6 +118,7 @@ func (s *AuthenticationService) refreshToken() (*string, error) {
 	return nil, nil
 }
 
+// ReAuthenticate updates authentication JWT and stores in local DB.
 func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 
 	// Assert that credentials exist
@@ -124,7 +127,12 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 		log.Panicln("Cannot call ReAuthenticate without prior Credentials")
 	}
 
-	s.getCognitoConfig()
+	// Stores the cognito config in the service object.
+	_, err := s.getCognitoConfig()
+	if err != nil {
+		log.Println("Error getting config: ", err)
+		return nil, err
+	}
 
 	// Use API-key and Secret from credentials and get new token
 	params := &cognito.InitiateAuthInput{
@@ -136,9 +144,13 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
 
-	sess, _ := session.NewSession(&aws.Config{
+	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-east-1"),
 	})
+	if err != nil {
+		log.Fatalln("Problem getting AWS session.")
+	}
+
 	svc := cognito.New(sess)
 
 	authResponse, authError := svc.InitiateAuth(params)

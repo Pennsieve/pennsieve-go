@@ -41,11 +41,12 @@ type TermsOfService struct {
 type UserOptions struct{}
 
 type UserService struct {
-	client *Client
+	client  *Client
+	baseUrl string
 }
 
 func (c *UserService) GetUser(ctx context.Context, options *UserOptions) (*User, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.client.BaseURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.baseUrl), nil)
 	if err != nil {
 		return nil, err
 	}

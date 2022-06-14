@@ -6,16 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"log"
 	"net/http"
 	"time"
 )
 
 const (
 	BaseURLV1 = "https://api.pennsieve.io"
+	BaseURLV2 = "https://api2.pennsieve.io"
 )
 
 type Client struct {
-	BaseURL        string
 	APISession     APISession
 	APICredentials APICredentials
 	AWSCredentials *cognitoidentity.Credentials
@@ -28,21 +29,22 @@ type Client struct {
 	Authentication *AuthenticationService
 	User           *UserService
 	Dataset        *DatasetService
+	Manifest       *ManifestService
 }
 
 // NewClient creates a new Pennsieve HTTP client.
-func NewClient() *Client {
+func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 
 	c := &Client{
-		BaseURL: BaseURLV1,
 		HTTPClient: &http.Client{
 			Timeout: time.Minute,
 		},
 	}
-	c.Organization = &OrganizationService{client: c}
-	c.Authentication = &AuthenticationService{client: c}
-	c.User = &UserService{client: c}
-	c.Dataset = &DatasetService{client: c}
+	c.Organization = &OrganizationService{client: c, baseUrl: baseUrlV1}
+	c.Authentication = &AuthenticationService{client: c, BaseUrl: baseUrlV1}
+	c.User = &UserService{client: c, baseUrl: baseUrlV1}
+	c.Dataset = &DatasetService{client: c, baseUrl: baseUrlV1}
+	c.Manifest = &ManifestService{client: c, baseUrl: baseUrlV2}
 
 	return c
 }
@@ -96,11 +98,9 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 		// also expires and there is no real reason why we don't just re-authenticate.`
 		_, err := c.Authentication.ReAuthenticate()
 		if err != nil {
-			fmt.Println("Error authenticating")
+			log.Println("Error authenticating:", err)
 			return err
 		}
-	} else {
-		//fmt.Println("Use existing session")
 	}
 
 	req = req.WithContext(ctx)
@@ -109,6 +109,8 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APISession.Token))
 	req.Header.Set("X-ORGANIZATION-ID", c.OrganizationNodeId)
+
+	fmt.Println(req.Header.Get("Authorization"))
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {

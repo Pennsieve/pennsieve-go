@@ -98,13 +98,14 @@ type Organizations struct {
 }
 
 type OrganizationService struct {
-	client *Client
+	client  *Client
+	baseUrl string
 }
 
 // List lists all the organizations that the user belongs to.
 func (o *OrganizationService) List(ctx context.Context) (*GetOrganizationsResponse, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizatinons", o.client.BaseURL), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizatinons", o.baseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func (o *OrganizationService) List(ctx context.Context) (*GetOrganizationsRespon
 // Get returns a single organization by id.
 func (o *OrganizationService) Get(ctx context.Context, id string) (*GetOrganizationResponse, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizations/%s", o.client.BaseURL, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizations/%s", o.baseUrl, id), nil)
 	if err != nil {
 		return nil, err
 	}
