@@ -9,19 +9,13 @@ import (
 	"net/http"
 )
 
-type ManifestResonse struct {
-	ManifestNodeId string   `json:"manifest_node_id"'`
-	NrFilesAdded   int      `json:"nrFilesAdded"`
-	FailedFiles    []string `json:"failedFiles"`
-}
-
 type ManifestService struct {
 	client  *Client
 	baseUrl string
 }
 
 // Get returns a single dataset by id.
-func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) (*ManifestResonse, error) {
+func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
 
 	fmt.Println("baseurl for manifestService: ", d.baseUrl)
 
@@ -38,7 +32,7 @@ func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 		ctx = req.Context()
 	}
 
-	res := ManifestResonse{}
+	res := manifest.PostResponse{}
 	if err := d.client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)

@@ -42,11 +42,20 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 	}
 	c.Organization = &OrganizationService{client: c, baseUrl: baseUrlV1}
 	c.Authentication = &AuthenticationService{client: c, BaseUrl: baseUrlV1}
-	c.User = &UserService{client: c, baseUrl: baseUrlV1}
+	c.User = &UserService{client: c, BaseUrl: baseUrlV1}
 	c.Dataset = &DatasetService{client: c, baseUrl: baseUrlV1}
 	c.Manifest = &ManifestService{client: c, baseUrl: baseUrlV2}
 
 	return c
+}
+
+func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
+
+	c.Organization.baseUrl = baseUrlV1
+	c.Authentication.BaseUrl = baseUrlV1
+	c.User.BaseUrl = baseUrlV1
+	c.Dataset.baseUrl = baseUrlV1
+	c.Manifest.baseUrl = baseUrlV2
 }
 
 type errorResponse struct {
@@ -91,6 +100,7 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
+	fmt.Println("TOKEN 2 ", c.APISession.Token)
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
 		fmt.Println("Refreshing token")
 
@@ -109,8 +119,6 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APISession.Token))
 	req.Header.Set("X-ORGANIZATION-ID", c.OrganizationNodeId)
-
-	fmt.Println(req.Header.Get("Authorization"))
 
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {

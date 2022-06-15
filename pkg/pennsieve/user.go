@@ -42,11 +42,11 @@ type UserOptions struct{}
 
 type UserService struct {
 	client  *Client
-	baseUrl string
+	BaseUrl string
 }
 
 func (c *UserService) GetUser(ctx context.Context, options *UserOptions) (*User, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.baseUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.BaseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +54,8 @@ func (c *UserService) GetUser(ctx context.Context, options *UserOptions) (*User,
 	if ctx == nil {
 		ctx = req.Context()
 	}
+
+	fmt.Println(req)
 
 	res := User{}
 	if err := c.client.sendRequest(ctx, req, &res); err != nil {

@@ -184,7 +184,7 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 }
 
 func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
-
+	fmt.Println("IN AUTH")
 	username := aws.String(apiKey)
 	password := aws.String(apiSecret)
 
@@ -193,6 +193,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
 
+	fmt.Println(clientID)
 	params := &cognito.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{
@@ -228,7 +229,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	var organizationNodeId string
 	var orgId string
 	var ok bool
-	//var iss string
 
 	if x, found := claims["custom:organization_node_id"]; found {
 		if organizationNodeId, ok = x.(string); !ok {
@@ -266,6 +266,8 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	s.client.OrganizationNodeId = organizationNodeId
 	s.client.APISession = creds
 	s.client.OrganizationId = orgIdInt
+
+	fmt.Println("TOKEN: ", creds.Token)
 
 	return &creds, nil
 }
