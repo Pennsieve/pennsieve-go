@@ -2,12 +2,12 @@ module github.com/pennsieve/pennsieve-go
 
 go 1.18
 
-replace github.com/pennsieve/pennsieve-go-api => ../pennsieve-go-api
+//replace github.com/pennsieve/pennsieve-go-api => ../pennsieve-go-api
 
 require (
 	github.com/aws/aws-sdk-go v1.43.25
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/pennsieve/pennsieve-go-api v0.0.0-00010101000000-000000000000
+	github.com/pennsieve/pennsieve-go-api v0.1.0
 )
 
 require (
