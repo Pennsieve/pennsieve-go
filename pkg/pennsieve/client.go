@@ -59,7 +59,6 @@ func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 }
 
 type errorResponse struct {
-	*http.Request
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
@@ -100,7 +99,6 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
-	fmt.Println("TOKEN 2 ", c.APISession.Token)
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
 		fmt.Println("Refreshing token")
 

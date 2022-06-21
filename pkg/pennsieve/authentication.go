@@ -176,15 +176,11 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 	s.client.APISession.Expiration = getTokenExpFromClaim(claims)
 	s.client.APISession.IsRefreshed = true
 
-	fmt.Println("Expiration in reauth", s.client.APISession.Expiration, s.client.APICredentials.ApiKey)
-	fmt.Printf("\n%s\n", s.client.APISession.Token)
-
 	return &s.client.APISession, nil
 
 }
 
 func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
-	fmt.Println("IN AUTH")
 	username := aws.String(apiKey)
 	password := aws.String(apiSecret)
 
@@ -266,8 +262,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	s.client.OrganizationNodeId = organizationNodeId
 	s.client.APISession = creds
 	s.client.OrganizationId = orgIdInt
-
-	fmt.Println("TOKEN: ", creds.Token)
 
 	return &creds, nil
 }

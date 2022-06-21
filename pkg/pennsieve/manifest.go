@@ -17,11 +17,8 @@ type ManifestService struct {
 // Get returns a single dataset by id.
 func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
 
-	fmt.Println("baseurl for manifestService: ", d.baseUrl)
-
 	requestStr := fmt.Sprintf("%s/manifest?dataset_id=%s", d.baseUrl, requestBody.DatasetId)
 
-	fmt.Println("Request: ", requestStr)
 	body, _ := json.Marshal(requestBody)
 	req, err := http.NewRequest("POST", requestStr, bytes.NewBuffer(body))
 	if err != nil {
