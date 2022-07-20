@@ -15,9 +15,10 @@ import (
 )
 
 type CognitoConfig struct {
-	Region    string    `json:"region"`
-	UserPool  UserPool  `json:"userPool"`
-	TokenPool TokenPool `json:"tokenPool"`
+	Region       string       `json:"region"`
+	UserPool     UserPool     `json:"userPool"`
+	TokenPool    TokenPool    `json:"tokenPool"`
+	IdentityPool IdentityPool `json:"identityPool"`
 }
 type UserPool struct {
 	Region      string `json:"region"`
@@ -28,6 +29,11 @@ type TokenPool struct {
 	Region      string `json:"region"`
 	ID          string `json:"id"`
 	AppClientID string `json:"appClientId"`
+}
+
+type IdentityPool struct {
+	Region string `json:"region"`
+	ID     string `json:"id"`
 }
 
 type APISession struct {
@@ -269,25 +275,26 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
 func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credentials {
 
-	//TODO: Return IdentityPoolId in getCognitoConfig
-
 	// Authenticate with UserPool using API Key and Secret
 	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
 
 	// Create new AWS session
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
+		Region: aws.String(s.config.Region),
 	})
 	if err != nil {
 		fmt.Println("Error creating session", err)
 	}
 
+	poolId := s.config.IdentityPool.ID
+	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
+
 	// Get an identity from Cognito's identity pool using authResponse from userpool
 	svc := cognitoidentity.New(sess)
 	idRes, err := svc.GetId(&cognitoidentity.GetIdInput{
-		IdentityPoolId: aws.String("us-east-1:a980feea-d99b-437d-98b8-dc23b3bb972c"),
+		IdentityPoolId: aws.String(poolId),
 		Logins: map[string]*string{
-			"cognito-idp.us-east-1.amazonaws.com/us-east-1_uCQXlh5nG": aws.String(authReponse.IdToken),
+			poolResource: aws.String(authReponse.IdToken),
 		},
 	})
 	if err != nil {
@@ -298,7 +305,7 @@ func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credential
 	credRes, err := svc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: idRes.IdentityId,
 		Logins: map[string]*string{
-			"cognito-idp.us-east-1.amazonaws.com/us-east-1_uCQXlh5nG": aws.String(authReponse.IdToken),
+			poolResource: aws.String(authReponse.IdToken),
 		},
 	})
 	if err != nil {
