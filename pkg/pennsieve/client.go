@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	BaseURLV1 = "https://api.pennsieve.io"
-	BaseURLV2 = "https://api2.pennsieve.io"
+	BaseURLV1           = "https://api.pennsieve.io"
+	BaseURLV2           = "https://api2.pennsieve.io"
+	DefaultUploadBucket = "pennsieve-prod-uploads-v2-use1"
 )
 
 type Client struct {
@@ -24,6 +25,7 @@ type Client struct {
 
 	OrganizationNodeId string
 	OrganizationId     int
+	UploadBucket       string
 
 	Organization   *OrganizationService
 	Authentication *AuthenticationService
@@ -45,6 +47,8 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 	c.User = &UserService{client: c, BaseUrl: baseUrlV1}
 	c.Dataset = &DatasetService{client: c, baseUrl: baseUrlV1}
 	c.Manifest = &ManifestService{client: c, baseUrl: baseUrlV2}
+
+	c.UploadBucket = DefaultUploadBucket
 
 	return c
 }
