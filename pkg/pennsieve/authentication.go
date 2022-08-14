@@ -161,7 +161,6 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 
 	authResponse, authError := svc.InitiateAuth(params)
 	if authError != nil {
-
 		fmt.Println("Error = ", authError)
 		return nil, authError
 	}
@@ -195,7 +194,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
 
-	fmt.Println(clientID)
 	params := &cognito.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go-api/models/manifest"
+	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest"
 	"net/http"
 )
 

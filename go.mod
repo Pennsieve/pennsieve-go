@@ -7,7 +7,7 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go v1.43.25
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/pennsieve/pennsieve-go-api v0.2.1
+	github.com/pennsieve/pennsieve-go-api v1.0.4
 )
 
 require (
