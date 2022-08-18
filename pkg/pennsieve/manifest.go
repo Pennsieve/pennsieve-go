@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest"
+	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest/manifestFile"
 	"net/http"
 )
 
@@ -37,4 +38,33 @@ func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 	}
 
 	return &res, nil
+}
+
+// GetFilesForStatus returns a list of files associated with the requested manifest and status.
+func (d *ManifestService) GetFilesForStatus(ctx context.Context, manifestId string,
+	status manifestFile.Status, continuationToken string, verify bool) (*manifest.GetStatusEndpointResponse, error) {
+
+	requestStr := fmt.Sprintf("%s/manifest/status?manifest_id=%s&status=%s&verify=%t", d.baseUrl, manifestId, status, verify)
+	if len(continuationToken) > 0 {
+		requestStr = requestStr + fmt.Sprintf("&continuation_token=%s", continuationToken)
+	}
+
+	req, err := http.NewRequest("GET", requestStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if ctx == nil {
+		ctx = req.Context()
+	}
+
+	res := manifest.GetStatusEndpointResponse{}
+	if err := d.client.sendRequest(ctx, req, &res); err != nil {
+
+		fmt.Println("SendRequest Error: ", err)
+		return nil, err
+	}
+
+	return &res, nil
+
 }

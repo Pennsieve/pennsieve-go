@@ -50,10 +50,9 @@ type APICredentials struct {
 }
 
 type AuthenticationService struct {
-	client        *Client
-	config        CognitoConfig
-	cognitoClient *cognito.CognitoIdentityProvider
-	BaseUrl       string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
+	client  *Client
+	config  CognitoConfig
+	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }
 
 // getCognitoConfig returns cognito urls from cloud.
@@ -273,6 +272,11 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
 func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credentials {
 
+	log.Println("IN GETAWSCREDS")
+	log.Println("api-key: " + s.client.APICredentials.ApiKey)
+	log.Println("api-token: " + s.client.APICredentials.ApiSecret)
+	log.Println("host: " + s.client.Authentication.BaseUrl)
+
 	// Authenticate with UserPool using API Key and Secret
 	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
 
@@ -312,6 +316,7 @@ func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credential
 
 	// Update Credentials in the Pennsieve Client
 	s.client.AWSCredentials = credRes.Credentials
+	log.Println(credRes.Credentials)
 
 	return s.client.AWSCredentials
 }
