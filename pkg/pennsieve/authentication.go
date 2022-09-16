@@ -1,11 +1,14 @@
 package pennsieve
 
 import (
+	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cognitoidentity"
-	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
+	IdentityTypes "github.com/aws/aws-sdk-go-v2/service/cognitoidentity/types"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/golang-jwt/jwt"
 	"log"
 	"math"
@@ -70,59 +73,6 @@ func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
 	return &res, nil
 }
 
-func (s *AuthenticationService) refreshToken() (*string, error) {
-
-	s.getCognitoConfig()
-
-	clientID := aws.String(s.config.TokenPool.AppClientID)
-	refreshToken := aws.String(s.client.APISession.RefreshToken)
-
-	params := &cognito.InitiateAuthInput{
-		AuthFlow: aws.String("REFRESH_TOKEN_AUTH"),
-		AuthParameters: map[string]*string{
-			"REFRESH_TOKEN": refreshToken,
-		},
-		ClientId: clientID,
-	}
-
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
-	})
-	svc := cognito.New(sess)
-
-	authResponse, authError := svc.InitiateAuth(params)
-	if authError != nil {
-		fmt.Println("Error = ", authError)
-		return nil, authError
-	}
-
-	// Parse JWT and extract token expiration
-	accessToken := authResponse.AuthenticationResult.AccessToken
-	idTokenJwt := authResponse.AuthenticationResult.IdToken
-	token, err := jwt.Parse(*idTokenJwt, nil)
-	if token == nil {
-		return nil, err
-	}
-	claims, _ := token.Claims.(jwt.MapClaims)
-
-	sessionConfig := APISession{
-
-		Token:        *accessToken,
-		RefreshToken: *refreshToken,
-		Expiration:   getTokenExpFromClaim(claims),
-		IsRefreshed:  true,
-	}
-
-	apiConfig := APICredentials{
-		ApiKey:    s.client.APICredentials.ApiKey,
-		ApiSecret: s.client.APICredentials.ApiSecret}
-
-	s.client.APISession = sessionConfig
-	s.client.APICredentials = apiConfig
-
-	return nil, nil
-}
-
 // ReAuthenticate updates authentication JWT and stores in local DB.
 func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 
@@ -139,27 +89,26 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 		return nil, err
 	}
 
-	// Use API-key and Secret from credentials and get new token
-	params := &cognito.InitiateAuthInput{
-		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
-		AuthParameters: map[string]*string{
-			"USERNAME": aws.String(s.client.APICredentials.ApiKey),
-			"PASSWORD": aws.String(s.client.APICredentials.ApiSecret),
+	params := &cognitoidentityprovider.InitiateAuthInput{
+		AuthFlow: types.AuthFlowTypeUserPasswordAuth,
+		AuthParameters: map[string]string{
+			"USERNAME": s.client.APICredentials.ApiKey,
+			"PASSWORD": s.client.APICredentials.ApiSecret,
 		},
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
-	})
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"),
+	)
 	if err != nil {
-		log.Fatalln("Problem getting AWS session.")
+		log.Fatal(err)
 	}
 
-	svc := cognito.New(sess)
-
-	authResponse, authError := svc.InitiateAuth(params)
+	svc := cognitoidentityprovider.NewFromConfig(cfg)
+	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
+
 		fmt.Println("Error = ", authError)
 		return nil, authError
 	}
@@ -185,29 +134,31 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 }
 
 func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
-	username := aws.String(apiKey)
-	password := aws.String(apiSecret)
 
 	// Get Cognito Configuration
 	s.getCognitoConfig()
 
 	clientID := aws.String(s.config.TokenPool.AppClientID)
 
-	params := &cognito.InitiateAuthInput{
-		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
-		AuthParameters: map[string]*string{
-			"USERNAME": username,
-			"PASSWORD": password,
+	params := &cognitoidentityprovider.InitiateAuthInput{
+		AuthFlow: types.AuthFlowTypeUserPasswordAuth,
+		AuthParameters: map[string]string{
+			"USERNAME": apiKey,
+			"PASSWORD": apiSecret,
 		},
 		ClientId: clientID,
 	}
 
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
-	})
-	svc := cognito.New(sess)
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	authResponse, authError := svc.InitiateAuth(params)
+	svc := cognitoidentityprovider.NewFromConfig(cfg)
+
+	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
 
 		fmt.Println("Error = ", authError)
@@ -270,7 +221,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 }
 
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
-func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credentials {
+func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
 
 	log.Println("IN GETAWSCREDS")
 	log.Println("api-key: " + s.client.APICredentials.ApiKey)
@@ -280,38 +231,37 @@ func (s *AuthenticationService) GetAWSCredsForUser() *cognitoidentity.Credential
 	// Authenticate with UserPool using API Key and Secret
 	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
 
-	// Create new AWS session
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(s.config.Region),
-	})
-	if err != nil {
-		fmt.Println("Error creating session", err)
-	}
-
 	poolId := s.config.IdentityPool.ID
 	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
 
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	svc := cognitoidentity.NewFromConfig(cfg)
+
+	//svc := cognitoidentityprovider.NewFromConfig(cfg)
+
 	// Get an identity from Cognito's identity pool using authResponse from userpool
-	svc := cognitoidentity.New(sess)
-	idRes, err := svc.GetId(&cognitoidentity.GetIdInput{
+	idRes, err := svc.GetId(context.Background(), &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String(poolId),
-		Logins: map[string]*string{
-			poolResource: aws.String(authReponse.IdToken),
+		Logins: map[string]string{
+			poolResource: authReponse.IdToken,
+		},
+	})
+
+	// Exchange identity token for Credentials from Cognito Identity Pool
+	credRes, err := svc.GetCredentialsForIdentity(context.Background(), &cognitoidentity.GetCredentialsForIdentityInput{
+		IdentityId: idRes.IdentityId,
+		Logins: map[string]string{
+			poolResource: authReponse.IdToken,
 		},
 	})
 	if err != nil {
 		fmt.Println("Error getting cognito ID:", err)
-	}
-
-	// Exchange identity token for Credentials from Cognito Identity Pool
-	credRes, err := svc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
-		IdentityId: idRes.IdentityId,
-		Logins: map[string]*string{
-			poolResource: aws.String(authReponse.IdToken),
-		},
-	})
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	// Update Credentials in the Pennsieve Client
@@ -337,4 +287,10 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 	sessionTokenExpiration := time.Unix(int64(integ), int64(decim*(1e9)))
 
 	return sessionTokenExpiration
+}
+
+type AWSCredentialProviderWithExpiration struct{}
+
+func (p AWSCredentialProviderWithExpiration) Retrieve(ctx context.Context) (*aws.Credentials, error) {
+	return nil, nil
 }

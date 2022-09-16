@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity/types"
 	"log"
 	"net/http"
 	"time"
@@ -20,7 +20,7 @@ const (
 type Client struct {
 	APISession     APISession
 	APICredentials APICredentials
-	AWSCredentials *cognitoidentity.Credentials
+	AWSCredentials *types.Credentials
 	HTTPClient     *http.Client
 
 	OrganizationNodeId string
