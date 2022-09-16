@@ -223,11 +223,6 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
 func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
 
-	log.Println("IN GETAWSCREDS")
-	log.Println("api-key: " + s.client.APICredentials.ApiKey)
-	log.Println("api-token: " + s.client.APICredentials.ApiSecret)
-	log.Println("host: " + s.client.Authentication.BaseUrl)
-
 	// Authenticate with UserPool using API Key and Secret
 	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
 
@@ -242,8 +237,6 @@ func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	}
 
 	svc := cognitoidentity.NewFromConfig(cfg)
-
-	//svc := cognitoidentityprovider.NewFromConfig(cfg)
 
 	// Get an identity from Cognito's identity pool using authResponse from userpool
 	idRes, err := svc.GetId(context.Background(), &cognitoidentity.GetIdInput{
@@ -264,11 +257,7 @@ func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 		fmt.Println("Error getting cognito ID:", err)
 	}
 
-	// Update Credentials in the Pennsieve Client
-	s.client.AWSCredentials = credRes.Credentials
-	log.Println(credRes.Credentials)
-
-	return s.client.AWSCredentials
+	return credRes.Credentials
 }
 
 // getTokenExpFromClaim grabs the token expiration timestamp from claims
@@ -289,8 +278,24 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 	return sessionTokenExpiration
 }
 
-type AWSCredentialProviderWithExpiration struct{}
+// AWSCredentialProviderWithExpiration provides AWS credentials
+// This method is used by the upload service and is wrapped in Credentials Cache
+type AWSCredentialProviderWithExpiration struct {
+	AuthService *AuthenticationService
+}
 
-func (p AWSCredentialProviderWithExpiration) Retrieve(ctx context.Context) (*aws.Credentials, error) {
-	return nil, nil
+func (p AWSCredentialProviderWithExpiration) Retrieve(ctx context.Context) (aws.Credentials, error) {
+
+	log.Println("Retrieving new credentials from AWS Credentials Provider.")
+
+	cognitoCredentials := p.AuthService.GetAWSCredsForUser()
+	awsCredentials := aws.Credentials{
+		AccessKeyID:     *cognitoCredentials.AccessKeyId,
+		SecretAccessKey: *cognitoCredentials.SecretKey,
+		SessionToken:    *cognitoCredentials.SessionToken,
+		Source:          "AWS Cognito",
+		CanExpire:       true,
+		Expires:         *cognitoCredentials.Expiration,
+	}
+	return awsCredentials, nil
 }
