@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/golang-jwt/jwt"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
 	"log"
 	"math"
 	"net/http"
@@ -17,54 +18,19 @@ import (
 	"time"
 )
 
-type CognitoConfig struct {
-	Region       string       `json:"region"`
-	UserPool     UserPool     `json:"userPool"`
-	TokenPool    TokenPool    `json:"tokenPool"`
-	IdentityPool IdentityPool `json:"identityPool"`
-}
-type UserPool struct {
-	Region      string `json:"region"`
-	ID          string `json:"id"`
-	AppClientID string `json:"appClientId"`
-}
-type TokenPool struct {
-	Region      string `json:"region"`
-	ID          string `json:"id"`
-	AppClientID string `json:"appClientId"`
-}
-
-type IdentityPool struct {
-	Region string `json:"region"`
-	ID     string `json:"id"`
-}
-
-type APISession struct {
-	Token        string
-	IdToken      string
-	Expiration   time.Time
-	RefreshToken string
-	IsRefreshed  bool
-}
-
-type APICredentials struct {
-	ApiKey    string
-	ApiSecret string
-}
-
 type AuthenticationService struct {
 	client  *Client
-	config  CognitoConfig
+	config  models.CognitoConfig
 	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }
 
 // getCognitoConfig returns cognito urls from cloud.
-func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
+func (s *AuthenticationService) getCognitoConfig() (*models.CognitoConfig, error) {
 
 	req, _ := http.NewRequest("GET",
 		fmt.Sprintf("%s/authentication/cognito-config", s.BaseUrl), nil)
 
-	res := CognitoConfig{}
+	res := models.CognitoConfig{}
 	if err := s.client.sendUnauthenticatedRequest(req.Context(), req, &res); err != nil {
 		return nil, err
 	}
@@ -74,10 +40,10 @@ func (s *AuthenticationService) getCognitoConfig() (*CognitoConfig, error) {
 }
 
 // ReAuthenticate updates authentication JWT and stores in local DB.
-func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
+func (s *AuthenticationService) ReAuthenticate() (*models.APISession, error) {
 
 	// Assert that credentials exist
-	var emptyCredentials APICredentials
+	var emptyCredentials models.APICredentials
 	if s.client.APICredentials == emptyCredentials {
 		log.Panicln("Cannot call ReAuthenticate without prior Credentials")
 	}
@@ -133,7 +99,7 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 
 }
 
-func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
+func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*models.APISession, error) {
 
 	// Get Cognito Configuration
 	s.getCognitoConfig()
@@ -205,7 +171,7 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 	//}
 
 	orgIdInt, _ := strconv.Atoi(orgId)
-	creds := APISession{
+	creds := models.APISession{
 		Token:        *accessToken,
 		RefreshToken: *refreshToken,
 		IdToken:      *idTokenJwt,

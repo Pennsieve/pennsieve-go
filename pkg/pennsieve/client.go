@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
 	"log"
 	"net/http"
 	"time"
@@ -17,8 +18,8 @@ const (
 )
 
 type Client struct {
-	APISession     APISession
-	APICredentials APICredentials
+	APISession     models.APISession
+	APICredentials models.APICredentials
 	HTTPClient     *http.Client
 
 	OrganizationNodeId string
@@ -30,6 +31,11 @@ type Client struct {
 	User           *UserService
 	Dataset        *DatasetService
 	Manifest       *ManifestService
+}
+
+type errorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 // NewClient creates a new Pennsieve HTTP client.
@@ -58,11 +64,6 @@ func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 	c.User.BaseUrl = baseUrlV1
 	c.Dataset.BaseUrl = baseUrlV1
 	c.Manifest.baseUrl = baseUrlV2
-}
-
-type errorResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }
 
 // sendUnauthenticatedRequest sends a http request without authentication
