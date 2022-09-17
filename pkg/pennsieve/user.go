@@ -3,7 +3,7 @@ package pennsieve
 import (
 	"context"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/user"
 	"net/http"
 )
 
@@ -12,7 +12,7 @@ type UserService struct {
 	BaseUrl string
 }
 
-func (c *UserService) GetUser(ctx context.Context, options *models.UserOptions) (*models.User, error) {
+func (c *UserService) GetUser(ctx context.Context, options *user.UserOptions) (*user.User, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.BaseUrl), nil)
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func (c *UserService) GetUser(ctx context.Context, options *models.UserOptions) 
 		ctx = req.Context()
 	}
 
-	res := models.User{}
+	res := user.User{}
 	if err := c.client.SendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}

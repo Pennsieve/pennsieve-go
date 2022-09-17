@@ -3,7 +3,7 @@ package pennsieve
 import (
 	"context"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/organization"
 	"net/http"
 )
 
@@ -13,14 +13,14 @@ type OrganizationService struct {
 }
 
 // List lists all the organizations that the user belongs to.
-func (o *OrganizationService) List(ctx context.Context) (*models.GetOrganizationsResponse, error) {
+func (o *OrganizationService) List(ctx context.Context) (*organization.GetOrganizationsResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizatinons", o.baseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res := models.GetOrganizationsResponse{}
+	res := organization.GetOrganizationsResponse{}
 	if err := o.client.SendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (o *OrganizationService) List(ctx context.Context) (*models.GetOrganization
 }
 
 // Get returns a single organization by id.
-func (o *OrganizationService) Get(ctx context.Context, id string) (*models.GetOrganizationResponse, error) {
+func (o *OrganizationService) Get(ctx context.Context, id string) (*organization.GetOrganizationResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizations/%s", o.baseUrl, id), nil)
 	if err != nil {
@@ -40,7 +40,7 @@ func (o *OrganizationService) Get(ctx context.Context, id string) (*models.GetOr
 		ctx = req.Context()
 	}
 
-	res := models.GetOrganizationResponse{}
+	res := organization.GetOrganizationResponse{}
 	if err := o.client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("ERROR: ", err)

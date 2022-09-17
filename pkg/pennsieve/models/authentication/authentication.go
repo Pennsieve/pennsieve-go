@@ -1,6 +1,4 @@
-package models
-
-import "time"
+package authentication
 
 type CognitoConfig struct {
 	Region       string       `json:"region"`
@@ -22,17 +20,4 @@ type TokenPool struct {
 type IdentityPool struct {
 	Region string `json:"region"`
 	ID     string `json:"id"`
-}
-
-type APISession struct {
-	Token        string
-	IdToken      string
-	Expiration   time.Time
-	RefreshToken string
-	IsRefreshed  bool
-}
-
-type APICredentials struct {
-	ApiKey    string
-	ApiSecret string
 }

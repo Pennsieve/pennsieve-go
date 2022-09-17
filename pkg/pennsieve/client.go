@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
 	"log"
 	"net/http"
 	"time"
@@ -18,8 +17,8 @@ const (
 )
 
 type Client struct {
-	APISession     models.APISession
-	APICredentials models.APICredentials
+	APISession     APISession
+	APICredentials APICredentials
 	HTTPClient     *http.Client
 
 	OrganizationNodeId string
@@ -31,6 +30,19 @@ type Client struct {
 	User           *UserService
 	Dataset        *DatasetService
 	Manifest       *ManifestService
+}
+
+type APISession struct {
+	Token        string
+	IdToken      string
+	Expiration   time.Time
+	RefreshToken string
+	IsRefreshed  bool
+}
+
+type APICredentials struct {
+	ApiKey    string
+	ApiSecret string
 }
 
 type errorResponse struct {

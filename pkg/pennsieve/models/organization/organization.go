@@ -1,6 +1,9 @@
-package models
+package organization
 
-import "time"
+import (
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/user"
+	"time"
+)
 
 type GetOrganizationsResponse struct {
 	Organizations []Organizations `json:"organizations"`
@@ -58,7 +61,7 @@ type Owners struct {
 	CreatedAt               time.Time               `json:"createdAt"`
 	Storage                 int                     `json:"storage"`
 	Credential              string                  `json:"credential"`
-	Orcid                   Orcid                   `json:"orcid"`
+	Orcid                   user.Orcid              `json:"orcid"`
 }
 type Administrators struct {
 	UpdatedAt               time.Time               `json:"updatedAt"`
@@ -82,7 +85,7 @@ type Administrators struct {
 	CreatedAt               time.Time               `json:"createdAt"`
 	Storage                 int                     `json:"storage"`
 	Credential              string                  `json:"credential"`
-	Orcid                   Orcid                   `json:"orcid"`
+	Orcid                   user.Orcid              `json:"orcid"`
 }
 type Organizations struct {
 	Organization   Organization     `json:"organization"`

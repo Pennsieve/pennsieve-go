@@ -3,7 +3,7 @@ package pennsieve
 import (
 	"context"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
 	"net/http"
 )
 
@@ -13,7 +13,7 @@ type DatasetService struct {
 }
 
 // Get returns a single dataset by id.
-func (d *DatasetService) Get(ctx context.Context, id string) (*models.GetDatasetResponse, error) {
+func (d *DatasetService) Get(ctx context.Context, id string) (*dataset.GetDatasetResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/%s", d.BaseUrl, id), nil)
 	if err != nil {
@@ -24,7 +24,7 @@ func (d *DatasetService) Get(ctx context.Context, id string) (*models.GetDataset
 		ctx = req.Context()
 	}
 
-	res := models.GetDatasetResponse{}
+	res := dataset.GetDatasetResponse{}
 	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
@@ -34,7 +34,7 @@ func (d *DatasetService) Get(ctx context.Context, id string) (*models.GetDataset
 	return &res, nil
 }
 
-func (d *DatasetService) List(ctx context.Context, limit int, offset int) (*models.ListDatasetResponse, error) {
+func (d *DatasetService) List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/paginated?limit=%d&offset=%d", d.BaseUrl, limit, offset), nil)
 	if err != nil {
@@ -45,7 +45,7 @@ func (d *DatasetService) List(ctx context.Context, limit int, offset int) (*mode
 		ctx = req.Context()
 	}
 
-	res := models.ListDatasetResponse{}
+	res := dataset.ListDatasetResponse{}
 	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
