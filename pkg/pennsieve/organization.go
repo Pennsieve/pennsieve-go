@@ -111,7 +111,7 @@ func (o *OrganizationService) List(ctx context.Context) (*GetOrganizationsRespon
 	}
 
 	res := GetOrganizationsResponse{}
-	if err := o.client.sendRequest(ctx, req, &res); err != nil {
+	if err := o.client.SendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}
 
@@ -131,7 +131,7 @@ func (o *OrganizationService) Get(ctx context.Context, id string) (*GetOrganizat
 	}
 
 	res := GetOrganizationResponse{}
-	if err := o.client.sendRequest(ctx, req, &res); err != nil {
+	if err := o.client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("ERROR: ", err)
 		return nil, err

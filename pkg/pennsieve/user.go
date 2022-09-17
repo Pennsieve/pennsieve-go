@@ -56,7 +56,7 @@ func (c *UserService) GetUser(ctx context.Context, options *UserOptions) (*User,
 	}
 
 	res := User{}
-	if err := c.client.sendRequest(ctx, req, &res); err != nil {
+	if err := c.client.SendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}
 

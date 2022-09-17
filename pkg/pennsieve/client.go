@@ -43,7 +43,7 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 	c.Organization = &OrganizationService{client: c, baseUrl: baseUrlV1}
 	c.Authentication = &AuthenticationService{client: c, BaseUrl: baseUrlV1}
 	c.User = &UserService{client: c, BaseUrl: baseUrlV1}
-	c.Dataset = &DatasetService{client: c, baseUrl: baseUrlV1}
+	c.Dataset = &DatasetService{Client: c, BaseUrl: baseUrlV1}
 	c.Manifest = &ManifestService{client: c, baseUrl: baseUrlV2}
 
 	c.UploadBucket = DefaultUploadBucket
@@ -56,7 +56,7 @@ func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 	c.Organization.baseUrl = baseUrlV1
 	c.Authentication.BaseUrl = baseUrlV1
 	c.User.BaseUrl = baseUrlV1
-	c.Dataset.baseUrl = baseUrlV1
+	c.Dataset.BaseUrl = baseUrlV1
 	c.Manifest.baseUrl = baseUrlV2
 }
 
@@ -96,9 +96,9 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 	return nil
 }
 
-// sendRequest sends a http request with the appropriate Pennsieve headers and auth.
+// SendRequest sends a http request with the appropriate Pennsieve headers and auth.
 // The method checks if the token is valid and refreshes the token if not.
-func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) SendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {

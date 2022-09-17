@@ -31,7 +31,7 @@ func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 	}
 
 	res := manifest.PostResponse{}
-	if err := d.client.sendRequest(ctx, req, &res); err != nil {
+	if err := d.client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
@@ -59,7 +59,7 @@ func (d *ManifestService) GetFilesForStatus(ctx context.Context, manifestId stri
 	}
 
 	res := manifest.GetStatusEndpointResponse{}
-	if err := d.client.sendRequest(ctx, req, &res); err != nil {
+	if err := d.client.SendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
