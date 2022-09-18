@@ -11,11 +11,11 @@ import (
 )
 
 type ManifestService struct {
-	client  *Client
+	client  *Client ``
 	baseUrl string
 }
 
-// Get returns a single dataset by id.
+// Create Creates a manifest using the Pensnieve service.
 func (d *ManifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
 
 	requestStr := fmt.Sprintf("%s/manifest?dataset_id=%s", d.baseUrl, requestBody.DatasetId)

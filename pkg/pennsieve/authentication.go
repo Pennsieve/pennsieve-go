@@ -263,5 +263,6 @@ func (p AWSCredentialProviderWithExpiration) Retrieve(ctx context.Context) (aws.
 		CanExpire:       true,
 		Expires:         *cognitoCredentials.Expiration,
 	}
+
 	return awsCredentials, nil
 }
