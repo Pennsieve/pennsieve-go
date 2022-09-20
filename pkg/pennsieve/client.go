@@ -115,7 +115,7 @@ func (c *Client) SendRequest(ctx context.Context, req *http.Request, v interface
 
 	// Check Expiration Time for current session and refresh if necessary
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
-		fmt.Println("Refreshing token")
+		log.Println("Refreshing token")
 
 		// We are using reAuthenticate instead of refresh pathway as eventually, the refresh-token
 		// also expires and there is no real reason why we don't just re-authenticate.`
