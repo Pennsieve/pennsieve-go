@@ -15,7 +15,7 @@ type mockHTTPService struct {
 }
 
 func (c *mockHTTPService) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
-	return nil
+	return c.sendRequest(ctx, req, v)
 }
 
 func (c *mockHTTPService) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
