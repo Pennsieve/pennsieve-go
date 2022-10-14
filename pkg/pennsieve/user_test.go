@@ -10,7 +10,7 @@ import (
 // We mock the HTTP-client to return a user.
 func TestGetUser(t *testing.T) {
 
-	ht := mockHTTPService{
+	ht := mockHTTPClient{
 		APISession:         APISession{},
 		APICredentials:     APICredentials{},
 		OrganizationNodeId: "",

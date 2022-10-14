@@ -7,18 +7,18 @@ import (
 	"net/http"
 )
 
-type mockHTTPService struct {
+type mockHTTPClient struct {
 	APISession         APISession
 	APICredentials     APICredentials
 	OrganizationNodeId string
 	OrganizationId     int
 }
 
-func (c *mockHTTPService) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *mockHTTPClient) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
 	return c.sendRequest(ctx, req, v)
 }
 
-func (c *mockHTTPService) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *mockHTTPClient) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Return an object of the requested type.
 	switch t := v.(type) {
@@ -33,19 +33,23 @@ func (c *mockHTTPService) sendRequest(ctx context.Context, req *http.Request, v 
 	return nil
 }
 
-func (c *mockHTTPService) GetCredentials() APICredentials {
+func (c *mockHTTPClient) GetCredentials() APICredentials {
 	return c.APICredentials
 }
 
-func (c *mockHTTPService) SetSession(s APISession) {
+func (c *mockHTTPClient) SetSession(s APISession) {
 	c.APISession = s
 }
 
-func (c *mockHTTPService) GetAPICredentials() APICredentials {
+func (c *mockHTTPClient) GetAPICredentials() APICredentials {
 	return c.APICredentials
 }
 
-func (c *mockHTTPService) SetOrganization(orgId int, orgNodeId string) {
+func (c *mockHTTPClient) SetOrganization(orgId int, orgNodeId string) {
 	c.OrganizationId = orgId
 	c.OrganizationNodeId = orgNodeId
+}
+
+func (c *mockHTTPClient) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
+
 }
