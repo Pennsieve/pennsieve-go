@@ -38,6 +38,7 @@ type Client struct {
 	APISession     APISession
 	APICredentials APICredentials
 	HTTPClient     *http.Client
+	BaseUrl        string
 
 	OrganizationNodeId string
 	OrganizationId     int
@@ -60,6 +61,7 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 		OrganizationNodeId: "",
 		OrganizationId:     0,
 		UploadBucket:       DefaultUploadBucket,
+		BaseUrl:            baseUrlV1,
 	}
 
 	c.Authentication = NewAuthenticationService(c, baseUrlV1)
@@ -78,9 +80,10 @@ type HTTPClient interface {
 	GetCredentials() APICredentials
 	SetSession(s APISession)
 	SetOrganization(orgId int, orgNodeId string)
+	SetBasePathForServices(baseUrlV1 string, baseUrlV2 string)
 }
 
-func (c *Client) setBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
+func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 
 	c.Organization.SetBaseUrl(baseUrlV1)
 	c.Authentication.SetBaseUrl(baseUrlV1)
