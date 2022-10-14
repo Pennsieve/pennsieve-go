@@ -34,17 +34,7 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
-type Client interface {
-	SetBasePathForServices(baseUrlV1 string, baseUrlV2 string)
-	SendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
-	SendRequest(ctx context.Context, req *http.Request, v interface{}) error
-	GetCredentials() APICredentials
-	SetSession(s APISession)
-	GetAPICredentials() APICredentials
-	SetOrganization(orgId int, orgNodeId string)
-}
-
-type client struct {
+type Client struct {
 	APISession     APISession
 	APICredentials APICredentials
 	HTTPClient     *http.Client
@@ -61,9 +51,9 @@ type client struct {
 }
 
 // NewClient creates a new Pennsieve HTTP client.
-func NewClient(baseUrlV1 string, baseUrlV2 string) *client {
+func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 
-	c := &client{
+	c := &Client{
 		APISession:         APISession{},
 		APICredentials:     APICredentials{},
 		HTTPClient:         &http.Client{Timeout: time.Minute},
@@ -81,7 +71,16 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *client {
 	return c
 }
 
-func (c *client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
+type HTTPClient interface {
+	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
+	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
+	GetAPICredentials() APICredentials
+	GetCredentials() APICredentials
+	SetSession(s APISession)
+	SetOrganization(orgId int, orgNodeId string)
+}
+
+func (c *Client) setBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 
 	c.Organization.SetBaseUrl(baseUrlV1)
 	c.Authentication.SetBaseUrl(baseUrlV1)
@@ -91,7 +90,7 @@ func (c *client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 }
 
 // sendUnauthenticatedRequest sends a http request without authentication
-func (c *client) SendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
 	req = req.WithContext(ctx)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -123,7 +122,7 @@ func (c *client) SendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 
 // SendRequest sends a http request with the appropriate Pennsieve headers and auth.
 // The method checks if the token is valid and refreshes the token if not.
-func (c *client) SendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
@@ -170,19 +169,19 @@ func (c *client) SendRequest(ctx context.Context, req *http.Request, v interface
 	return nil
 }
 
-func (c *client) GetCredentials() APICredentials {
+func (c *Client) GetCredentials() APICredentials {
 	return c.APICredentials
 }
 
-func (c *client) SetSession(s APISession) {
+func (c *Client) SetSession(s APISession) {
 	c.APISession = s
 }
 
-func (c *client) GetAPICredentials() APICredentials {
+func (c *Client) GetAPICredentials() APICredentials {
 	return c.APICredentials
 }
 
-func (c *client) SetOrganization(orgId int, orgNodeId string) {
+func (c *Client) SetOrganization(orgId int, orgNodeId string) {
 	c.OrganizationId = orgId
 	c.OrganizationNodeId = orgNodeId
 }

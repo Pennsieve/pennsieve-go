@@ -8,24 +8,24 @@ import (
 )
 
 type UserService interface {
-	GetUser(ctx context.Context, options *user.UserOptions) (*user.User, error)
+	GetUser(ctx context.Context) (*user.User, error)
 	SetBaseUrl(url string)
 }
 
 type userService struct {
-	client  Client
+	client  HTTPClient
 	BaseUrl string
 }
 
-func NewUserService(client Client, baseUrl string) *userService {
+func NewUserService(client HTTPClient, baseUrl string) *userService {
 	return &userService{
 		client:  client,
 		BaseUrl: baseUrl,
 	}
 }
 
-func (c *userService) GetUser(ctx context.Context, options *user.UserOptions) (*user.User, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", c.BaseUrl), nil)
+func (s *userService) GetUser(ctx context.Context) (*user.User, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", s.BaseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (c *userService) GetUser(ctx context.Context, options *user.UserOptions) (*
 	}
 
 	res := user.User{}
-	if err := c.client.SendRequest(ctx, req, &res); err != nil {
+	if err := s.client.sendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}
 

@@ -18,12 +18,13 @@ type DatasetService interface {
 }
 
 type datasetService struct {
-	Client  Client
+	Client  HTTPClient
 	BaseUrl string
 }
 
-func NewDatasetService(client Client, baseUrl string) *datasetService {
+func NewDatasetService(client HTTPClient, baseUrl string) *datasetService {
 	return &datasetService{
+		Client:  client,
 		BaseUrl: baseUrl,
 	}
 }
@@ -41,7 +42,7 @@ func (d *datasetService) Get(ctx context.Context, id string) (*dataset.GetDatase
 	}
 
 	res := dataset.GetDatasetResponse{}
-	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
 
 		log.Println("DatasetService: SendRequest Error in Get: ", err)
 		return nil, err
@@ -67,7 +68,7 @@ func (d *datasetService) Find(ctx context.Context, limit int, query string) (*da
 	}
 
 	res := dataset.ListDatasetResponse{}
-	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
@@ -93,7 +94,7 @@ func (d *datasetService) List(ctx context.Context, limit int, offset int) (*data
 	}
 
 	res := dataset.ListDatasetResponse{}
-	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err

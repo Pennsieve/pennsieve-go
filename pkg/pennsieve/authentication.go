@@ -24,10 +24,10 @@ type AuthenticationService interface {
 	Authenticate(apiKey string, apiSecret string) (*APISession, error)
 	GetAWSCredsForUser() *IdentityTypes.Credentials
 	SetBaseUrl(url string)
-	SetClient(client Client)
+	SetClient(client *Client)
 }
 
-func NewAuthenticationService(client Client, baseUrl string) *authenticationService {
+func NewAuthenticationService(client HTTPClient, baseUrl string) *authenticationService {
 	return &authenticationService{
 		client:  client,
 		BaseUrl: baseUrl,
@@ -35,7 +35,7 @@ func NewAuthenticationService(client Client, baseUrl string) *authenticationServ
 }
 
 type authenticationService struct {
-	client  Client
+	client  HTTPClient
 	config  authentication.CognitoConfig
 	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }
@@ -47,7 +47,7 @@ func (s *authenticationService) getCognitoConfig() (*authentication.CognitoConfi
 		fmt.Sprintf("%s/authentication/cognito-config", s.BaseUrl), nil)
 
 	res := authentication.CognitoConfig{}
-	if err := s.client.SendUnauthenticatedRequest(req.Context(), req, &res); err != nil {
+	if err := s.client.sendUnauthenticatedRequest(req.Context(), req, &res); err != nil {
 		return nil, err
 	}
 
@@ -251,7 +251,7 @@ func (s *authenticationService) SetBaseUrl(url string) {
 	s.BaseUrl = url
 }
 
-func (s *authenticationService) SetClient(client Client) {
+func (s *authenticationService) SetClient(client *Client) {
 	s.client = client
 }
 

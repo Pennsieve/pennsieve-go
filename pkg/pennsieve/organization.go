@@ -14,11 +14,11 @@ type OrganizationService interface {
 }
 
 type organizationService struct {
-	client  Client
+	client  HTTPClient
 	baseUrl string
 }
 
-func NewOrganizationService(client Client, baseUrl string) *organizationService {
+func NewOrganizationService(client HTTPClient, baseUrl string) *organizationService {
 	return &organizationService{
 		client:  client,
 		baseUrl: baseUrl,
@@ -34,7 +34,7 @@ func (o *organizationService) List(ctx context.Context) (*organization.GetOrgani
 	}
 
 	res := organization.GetOrganizationsResponse{}
-	if err := o.client.SendRequest(ctx, req, &res); err != nil {
+	if err := o.client.sendRequest(ctx, req, &res); err != nil {
 		return nil, err
 	}
 
@@ -54,7 +54,7 @@ func (o *organizationService) Get(ctx context.Context, id string) (*organization
 	}
 
 	res := organization.GetOrganizationResponse{}
-	if err := o.client.SendRequest(ctx, req, &res); err != nil {
+	if err := o.client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("ERROR: ", err)
 		return nil, err

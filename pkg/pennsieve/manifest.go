@@ -19,11 +19,11 @@ type ManifestService interface {
 }
 
 type manifestService struct {
-	client  Client
+	client  HTTPClient
 	baseUrl string
 }
 
-func NewManifestService(client Client, baseUrl string) *manifestService {
+func NewManifestService(client HTTPClient, baseUrl string) *manifestService {
 	return &manifestService{
 		client:  client,
 		baseUrl: baseUrl,
@@ -47,7 +47,7 @@ func (d *manifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 	}
 
 	res := manifest.PostResponse{}
-	if err := d.client.SendRequest(ctx, req, &res); err != nil {
+	if err := d.client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
@@ -75,7 +75,7 @@ func (d *manifestService) GetFilesForStatus(ctx context.Context, manifestId stri
 	}
 
 	res := manifest.GetStatusEndpointResponse{}
-	if err := d.client.SendRequest(ctx, req, &res); err != nil {
+	if err := d.client.sendRequest(ctx, req, &res); err != nil {
 		fmt.Println(req)
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
