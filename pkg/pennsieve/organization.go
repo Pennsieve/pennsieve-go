@@ -7,13 +7,26 @@ import (
 	"net/http"
 )
 
-type OrganizationService struct {
-	client  *Client
+type OrganizationService interface {
+	List(ctx context.Context) (*organization.GetOrganizationsResponse, error)
+	Get(ctx context.Context, id string) (*organization.GetOrganizationResponse, error)
+	SetBaseUrl(url string)
+}
+
+type organizationService struct {
+	client  Client
 	baseUrl string
 }
 
+func NewOrganizationService(client Client, baseUrl string) *organizationService {
+	return &organizationService{
+		client:  client,
+		baseUrl: baseUrl,
+	}
+}
+
 // List lists all the organizations that the user belongs to.
-func (o *OrganizationService) List(ctx context.Context) (*organization.GetOrganizationsResponse, error) {
+func (o *organizationService) List(ctx context.Context) (*organization.GetOrganizationsResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizatinons", o.baseUrl), nil)
 	if err != nil {
@@ -29,7 +42,7 @@ func (o *OrganizationService) List(ctx context.Context) (*organization.GetOrgani
 }
 
 // Get returns a single organization by id.
-func (o *OrganizationService) Get(ctx context.Context, id string) (*organization.GetOrganizationResponse, error) {
+func (o *organizationService) Get(ctx context.Context, id string) (*organization.GetOrganizationResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizations/%s", o.baseUrl, id), nil)
 	if err != nil {
@@ -48,4 +61,8 @@ func (o *OrganizationService) Get(ctx context.Context, id string) (*organization
 	}
 
 	return &res, nil
+}
+
+func (s *organizationService) SetBaseUrl(url string) {
+	s.baseUrl = url
 }

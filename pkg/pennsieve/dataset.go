@@ -4,18 +4,32 @@ import (
 	"context"
 	"fmt"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 )
 
-type DatasetService struct {
-	Client  *Client
+type DatasetService interface {
+	Get(ctx context.Context, id string) (*dataset.GetDatasetResponse, error)
+	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
+	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
+	SetBaseUrl(url string)
+}
+
+type datasetService struct {
+	Client  Client
 	BaseUrl string
 }
 
+func NewDatasetService(client Client, baseUrl string) *datasetService {
+	return &datasetService{
+		BaseUrl: baseUrl,
+	}
+}
+
 // Get returns a single dataset by id.
-func (d *DatasetService) Get(ctx context.Context, id string) (*dataset.GetDatasetResponse, error) {
+func (d *datasetService) Get(ctx context.Context, id string) (*dataset.GetDatasetResponse, error) {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/%s", d.BaseUrl, id), nil)
 	if err != nil {
@@ -29,7 +43,7 @@ func (d *DatasetService) Get(ctx context.Context, id string) (*dataset.GetDatase
 	res := dataset.GetDatasetResponse{}
 	if err := d.Client.SendRequest(ctx, req, &res); err != nil {
 
-		fmt.Println("SendRequest Error: ", err)
+		log.Println("DatasetService: SendRequest Error in Get: ", err)
 		return nil, err
 	}
 
@@ -37,7 +51,7 @@ func (d *DatasetService) Get(ctx context.Context, id string) (*dataset.GetDatase
 }
 
 // Find returns a list of datasets based on a provided query
-func (d *DatasetService) Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error) {
+func (d *datasetService) Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error) {
 
 	params := url.Values{}
 	params.Add("limit", strconv.Itoa(limit))
@@ -63,7 +77,7 @@ func (d *DatasetService) Find(ctx context.Context, limit int, query string) (*da
 }
 
 // List returns a list of datasets with a limit and an offset
-func (d *DatasetService) List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error) {
+func (d *datasetService) List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error) {
 
 	params := url.Values{}
 	params.Add("limit", strconv.Itoa(limit))
@@ -86,4 +100,8 @@ func (d *DatasetService) List(ctx context.Context, limit int, offset int) (*data
 	}
 
 	return &res, nil
+}
+
+func (s *datasetService) SetBaseUrl(url string) {
+	s.BaseUrl = url
 }
