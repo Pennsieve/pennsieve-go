@@ -13,11 +13,11 @@ type UserService interface {
 }
 
 type userService struct {
-	client  HTTPClient
+	client  PennsieveHTTPClient
 	BaseUrl string
 }
 
-func NewUserService(client HTTPClient, baseUrl string) *userService {
+func NewUserService(client PennsieveHTTPClient, baseUrl string) *userService {
 	return &userService{
 		client:  client,
 		BaseUrl: baseUrl,

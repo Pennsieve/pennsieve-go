@@ -27,7 +27,7 @@ type AuthenticationService interface {
 	SetClient(client *Client)
 }
 
-func NewAuthenticationService(client HTTPClient, baseUrl string) *authenticationService {
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string) *authenticationService {
 	return &authenticationService{
 		client:  client,
 		BaseUrl: baseUrl,
@@ -35,7 +35,7 @@ func NewAuthenticationService(client HTTPClient, baseUrl string) *authentication
 }
 
 type authenticationService struct {
-	client  HTTPClient
+	client  PennsieveHTTPClient
 	config  authentication.CognitoConfig
 	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }

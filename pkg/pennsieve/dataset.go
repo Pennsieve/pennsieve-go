@@ -18,11 +18,11 @@ type DatasetService interface {
 }
 
 type datasetService struct {
-	Client  HTTPClient
+	Client  PennsieveHTTPClient
 	BaseUrl string
 }
 
-func NewDatasetService(client HTTPClient, baseUrl string) *datasetService {
+func NewDatasetService(client PennsieveHTTPClient, baseUrl string) *datasetService {
 	return &datasetService{
 		Client:  client,
 		BaseUrl: baseUrl,

@@ -14,11 +14,11 @@ type OrganizationService interface {
 }
 
 type organizationService struct {
-	client  HTTPClient
+	client  PennsieveHTTPClient
 	baseUrl string
 }
 
-func NewOrganizationService(client HTTPClient, baseUrl string) *organizationService {
+func NewOrganizationService(client PennsieveHTTPClient, baseUrl string) *organizationService {
 	return &organizationService{
 		client:  client,
 		baseUrl: baseUrl,

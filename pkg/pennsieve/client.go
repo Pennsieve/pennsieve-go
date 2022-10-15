@@ -70,10 +70,12 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 	c.Dataset = NewDatasetService(c, baseUrlV1)
 	c.Manifest = NewManifestService(c, baseUrlV2)
 
+	c.Authentication.getCognitoConfig()
+
 	return c
 }
 
-type HTTPClient interface {
+type PennsieveHTTPClient interface {
 	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
 	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
 	GetAPICredentials() APICredentials

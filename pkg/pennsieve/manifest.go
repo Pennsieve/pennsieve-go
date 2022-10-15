@@ -19,11 +19,11 @@ type ManifestService interface {
 }
 
 type manifestService struct {
-	client  HTTPClient
+	client  PennsieveHTTPClient
 	baseUrl string
 }
 
-func NewManifestService(client HTTPClient, baseUrl string) *manifestService {
+func NewManifestService(client PennsieveHTTPClient, baseUrl string) *manifestService {
 	return &manifestService{
 		client:  client,
 		baseUrl: baseUrl,
@@ -31,9 +31,9 @@ func NewManifestService(client HTTPClient, baseUrl string) *manifestService {
 }
 
 // Create Creates a manifest using the Pensnieve service.
-func (d *manifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
+func (s *manifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
 
-	requestStr := fmt.Sprintf("%s/manifest?dataset_id=%s", d.baseUrl, requestBody.DatasetId)
+	requestStr := fmt.Sprintf("%s/manifest?dataset_id=%s", s.baseUrl, requestBody.DatasetId)
 
 	body, _ := json.Marshal(requestBody)
 	req, err := http.NewRequest("POST", requestStr, bytes.NewBuffer(body))
@@ -47,7 +47,7 @@ func (d *manifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 	}
 
 	res := manifest.PostResponse{}
-	if err := d.client.sendRequest(ctx, req, &res); err != nil {
+	if err := s.client.sendRequest(ctx, req, &res); err != nil {
 
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
@@ -57,10 +57,10 @@ func (d *manifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 }
 
 // GetFilesForStatus returns a list of files associated with the requested manifest and status.
-func (d *manifestService) GetFilesForStatus(ctx context.Context, manifestId string,
+func (s *manifestService) GetFilesForStatus(ctx context.Context, manifestId string,
 	status manifestFile.Status, continuationToken string, verify bool) (*manifest.GetStatusEndpointResponse, error) {
 
-	requestStr := fmt.Sprintf("%s/manifest/status?manifest_id=%s&status=%s&verify=%t", d.baseUrl, manifestId, status, verify)
+	requestStr := fmt.Sprintf("%s/manifest/status?manifest_id=%s&status=%s&verify=%t", s.baseUrl, manifestId, status, verify)
 	if len(continuationToken) > 0 {
 		requestStr = requestStr + fmt.Sprintf("&continuation_token=%s", continuationToken)
 	}
@@ -75,8 +75,7 @@ func (d *manifestService) GetFilesForStatus(ctx context.Context, manifestId stri
 	}
 
 	res := manifest.GetStatusEndpointResponse{}
-	if err := d.client.sendRequest(ctx, req, &res); err != nil {
-		fmt.Println(req)
+	if err := s.client.sendRequest(ctx, req, &res); err != nil {
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
 	}
