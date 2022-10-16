@@ -16,22 +16,6 @@ const (
 	DefaultUploadBucket = "pennsieve-prod-uploads-v2-use1"
 )
 
-type Client struct {
-	APISession     APISession
-	APICredentials APICredentials
-	HTTPClient     *http.Client
-
-	OrganizationNodeId string
-	OrganizationId     int
-	UploadBucket       string
-
-	Organization   *OrganizationService
-	Authentication *AuthenticationService
-	User           *UserService
-	Dataset        *DatasetService
-	Manifest       *ManifestService
-}
-
 type APISession struct {
 	Token        string
 	IdToken      string
@@ -50,32 +34,64 @@ type errorResponse struct {
 	Message string `json:"message"`
 }
 
+type Client struct {
+	APISession     APISession
+	APICredentials APICredentials
+	HTTPClient     *http.Client
+	BaseUrl        string
+
+	OrganizationNodeId string
+	OrganizationId     int
+	UploadBucket       string
+
+	Organization   OrganizationService
+	Authentication AuthenticationService
+	User           UserService
+	Dataset        DatasetService
+	Manifest       ManifestService
+}
+
 // NewClient creates a new Pennsieve HTTP client.
 func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 
 	c := &Client{
-		HTTPClient: &http.Client{
-			Timeout: time.Minute,
-		},
+		APISession:         APISession{},
+		APICredentials:     APICredentials{},
+		HTTPClient:         &http.Client{Timeout: time.Minute},
+		OrganizationNodeId: "",
+		OrganizationId:     0,
+		UploadBucket:       DefaultUploadBucket,
+		BaseUrl:            baseUrlV1,
 	}
-	c.Organization = &OrganizationService{client: c, baseUrl: baseUrlV1}
-	c.Authentication = &AuthenticationService{client: c, BaseUrl: baseUrlV1}
-	c.User = &UserService{client: c, BaseUrl: baseUrlV1}
-	c.Dataset = &DatasetService{Client: c, BaseUrl: baseUrlV1}
-	c.Manifest = &ManifestService{client: c, baseUrl: baseUrlV2}
 
-	c.UploadBucket = DefaultUploadBucket
+	c.Authentication = NewAuthenticationService(c, baseUrlV1)
+	c.Organization = NewOrganizationService(c, baseUrlV1)
+	c.User = NewUserService(c, baseUrlV1)
+	c.Dataset = NewDatasetService(c, baseUrlV1)
+	c.Manifest = NewManifestService(c, baseUrlV2)
+
+	c.Authentication.getCognitoConfig()
 
 	return c
 }
 
+type PennsieveHTTPClient interface {
+	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
+	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
+	GetAPICredentials() APICredentials
+	GetCredentials() APICredentials
+	SetSession(s APISession)
+	SetOrganization(orgId int, orgNodeId string)
+	SetBasePathForServices(baseUrlV1 string, baseUrlV2 string)
+}
+
 func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
 
-	c.Organization.baseUrl = baseUrlV1
-	c.Authentication.BaseUrl = baseUrlV1
-	c.User.BaseUrl = baseUrlV1
-	c.Dataset.BaseUrl = baseUrlV1
-	c.Manifest.baseUrl = baseUrlV2
+	c.Organization.SetBaseUrl(baseUrlV1)
+	c.Authentication.SetBaseUrl(baseUrlV1)
+	c.User.SetBaseUrl(baseUrlV1)
+	c.Dataset.SetBaseUrl(baseUrlV1)
+	c.Manifest.SetBaseUrl(baseUrlV2)
 }
 
 // sendUnauthenticatedRequest sends a http request without authentication
@@ -111,7 +127,7 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 
 // SendRequest sends a http request with the appropriate Pennsieve headers and auth.
 // The method checks if the token is valid and refreshes the token if not.
-func (c *Client) SendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
 
 	// Check Expiration Time for current session and refresh if necessary
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
@@ -156,4 +172,21 @@ func (c *Client) SendRequest(ctx context.Context, req *http.Request, v interface
 	}
 
 	return nil
+}
+
+func (c *Client) GetCredentials() APICredentials {
+	return c.APICredentials
+}
+
+func (c *Client) SetSession(s APISession) {
+	c.APISession = s
+}
+
+func (c *Client) GetAPICredentials() APICredentials {
+	return c.APICredentials
+}
+
+func (c *Client) SetOrganization(orgId int, orgNodeId string) {
+	c.OrganizationId = orgId
+	c.OrganizationNodeId = orgNodeId
 }

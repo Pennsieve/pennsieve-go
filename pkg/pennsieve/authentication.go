@@ -18,14 +18,30 @@ import (
 	"time"
 )
 
-type AuthenticationService struct {
-	client  *Client
+type AuthenticationService interface {
+	getCognitoConfig() (*authentication.CognitoConfig, error)
+	ReAuthenticate() (*APISession, error)
+	Authenticate(apiKey string, apiSecret string) (*APISession, error)
+	GetAWSCredsForUser() *IdentityTypes.Credentials
+	SetBaseUrl(url string)
+	SetClient(client *Client)
+}
+
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string) *authenticationService {
+	return &authenticationService{
+		client:  client,
+		BaseUrl: baseUrl,
+	}
+}
+
+type authenticationService struct {
+	client  PennsieveHTTPClient
 	config  authentication.CognitoConfig
 	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 }
 
 // getCognitoConfig returns cognito urls from cloud.
-func (s *AuthenticationService) getCognitoConfig() (*authentication.CognitoConfig, error) {
+func (s *authenticationService) getCognitoConfig() (*authentication.CognitoConfig, error) {
 
 	req, _ := http.NewRequest("GET",
 		fmt.Sprintf("%s/authentication/cognito-config", s.BaseUrl), nil)
@@ -40,11 +56,11 @@ func (s *AuthenticationService) getCognitoConfig() (*authentication.CognitoConfi
 }
 
 // ReAuthenticate updates authentication JWT and stores in local DB.
-func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
+func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 
 	// Assert that credentials exist
 	var emptyCredentials APICredentials
-	if s.client.APICredentials == emptyCredentials {
+	if s.client.GetCredentials() == emptyCredentials {
 		log.Panicln("Cannot call ReAuthenticate without prior Credentials")
 	}
 
@@ -58,8 +74,8 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 	params := &cognitoidentityprovider.InitiateAuthInput{
 		AuthFlow: types.AuthFlowTypeUserPasswordAuth,
 		AuthParameters: map[string]string{
-			"USERNAME": s.client.APICredentials.ApiKey,
-			"PASSWORD": s.client.APICredentials.ApiSecret,
+			"USERNAME": s.client.GetCredentials().ApiKey,
+			"PASSWORD": s.client.GetCredentials().ApiSecret,
 		},
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
@@ -90,16 +106,21 @@ func (s *AuthenticationService) ReAuthenticate() (*APISession, error) {
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
 
-	s.client.APISession.Token = *accessToken
-	s.client.APISession.RefreshToken = *refreshToken
-	s.client.APISession.Expiration = getTokenExpFromClaim(claims)
-	s.client.APISession.IsRefreshed = true
+	newSession := APISession{
+		Token:        *accessToken,
+		IdToken:      "",
+		Expiration:   getTokenExpFromClaim(claims),
+		RefreshToken: *refreshToken,
+		IsRefreshed:  true,
+	}
 
-	return &s.client.APISession, nil
+	s.client.SetSession(newSession)
+
+	return &newSession, nil
 
 }
 
-func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
+func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*APISession, error) {
 
 	// Get Cognito Configuration
 	s.getCognitoConfig()
@@ -179,18 +200,18 @@ func (s *AuthenticationService) Authenticate(apiKey string, apiSecret string) (*
 		IsRefreshed:  false,
 	}
 
-	s.client.OrganizationNodeId = organizationNodeId
-	s.client.APISession = creds
-	s.client.OrganizationId = orgIdInt
+	s.client.SetOrganization(orgIdInt, organizationNodeId)
+	s.client.SetSession(creds)
 
 	return &creds, nil
 }
 
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
-func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
+func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
 
 	// Authenticate with UserPool using API Key and Secret
-	authReponse, _ := s.client.Authentication.Authenticate(s.client.APICredentials.ApiKey, s.client.APICredentials.ApiSecret)
+	creds := s.client.GetAPICredentials()
+	authReponse, _ := s.Authenticate(creds.ApiKey, creds.ApiSecret)
 
 	poolId := s.config.IdentityPool.ID
 	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
@@ -226,6 +247,14 @@ func (s *AuthenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	return credRes.Credentials
 }
 
+func (s *authenticationService) SetBaseUrl(url string) {
+	s.BaseUrl = url
+}
+
+func (s *authenticationService) SetClient(client *Client) {
+	s.client = client
+}
+
 // getTokenExpFromClaim grabs the token expiration timestamp from claims
 func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 	var tokenExp float64
@@ -241,13 +270,15 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 	integ, decim := math.Modf(tokenExp)
 	sessionTokenExpiration := time.Unix(int64(integ), int64(decim*(1e9)))
 
+	log.Println("Should be one hour:", sessionTokenExpiration.Unix()-time.Now().Unix())
+
 	return sessionTokenExpiration
 }
 
 // AWSCredentialProviderWithExpiration provides AWS credentials
 // This method is used by the upload service and is wrapped in Credentials Cache
 type AWSCredentialProviderWithExpiration struct {
-	AuthService *AuthenticationService
+	AuthService AuthenticationService
 }
 
 func (p AWSCredentialProviderWithExpiration) Retrieve(ctx context.Context) (aws.Credentials, error) {
