@@ -52,6 +52,7 @@ func (s *authenticationService) getCognitoConfig() (*authentication.CognitoConfi
 	}
 
 	s.config = res
+
 	return &res, nil
 }
 
@@ -59,8 +60,8 @@ func (s *authenticationService) getCognitoConfig() (*authentication.CognitoConfi
 func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 
 	// Assert that credentials exist
-	var emptyCredentials APICredentials
-	if s.client.GetCredentials() == emptyCredentials {
+	var emptyParams APIParams
+	if *s.client.GetAPIParams() == emptyParams {
 		log.Panicln("Cannot call ReAuthenticate without prior Credentials")
 	}
 
@@ -74,8 +75,8 @@ func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 	params := &cognitoidentityprovider.InitiateAuthInput{
 		AuthFlow: types.AuthFlowTypeUserPasswordAuth,
 		AuthParameters: map[string]string{
-			"USERNAME": s.client.GetCredentials().ApiKey,
-			"PASSWORD": s.client.GetCredentials().ApiSecret,
+			"USERNAME": s.client.GetAPIParams().ApiKey,
+			"PASSWORD": s.client.GetAPIParams().ApiSecret,
 		},
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
@@ -210,8 +211,12 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
 
 	// Authenticate with UserPool using API Key and Secret
-	creds := s.client.GetAPICredentials()
-	authReponse, _ := s.Authenticate(creds.ApiKey, creds.ApiSecret)
+	creds := s.client.GetAPIParams()
+
+	authResponse, err := s.Authenticate(creds.ApiKey, creds.ApiSecret)
+	if err != nil {
+		log.Println("Error authenticating: ", err)
+	}
 
 	poolId := s.config.IdentityPool.ID
 	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
@@ -229,7 +234,7 @@ func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	idRes, err := svc.GetId(context.Background(), &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String(poolId),
 		Logins: map[string]string{
-			poolResource: authReponse.IdToken,
+			poolResource: authResponse.IdToken,
 		},
 	})
 
@@ -237,9 +242,10 @@ func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	credRes, err := svc.GetCredentialsForIdentity(context.Background(), &cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: idRes.IdentityId,
 		Logins: map[string]string{
-			poolResource: authReponse.IdToken,
+			poolResource: authResponse.IdToken,
 		},
 	})
+
 	if err != nil {
 		fmt.Println("Error getting cognito ID:", err)
 	}
@@ -269,8 +275,6 @@ func getTokenExpFromClaim(claims jwt.MapClaims) time.Time {
 
 	integ, decim := math.Modf(tokenExp)
 	sessionTokenExpiration := time.Unix(int64(integ), int64(decim*(1e9)))
-
-	log.Println("Should be one hour:", sessionTokenExpiration.Unix()-time.Now().Unix())
 
 	return sessionTokenExpiration
 }

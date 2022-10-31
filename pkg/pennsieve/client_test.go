@@ -12,7 +12,7 @@ import (
 
 type mockHTTPClient struct {
 	APISession         APISession
-	APICredentials     APICredentials
+	APIParams          APIParams
 	OrganizationNodeId string
 	OrganizationId     int
 }
@@ -46,16 +46,16 @@ func (c *mockHTTPClient) sendRequest(ctx context.Context, req *http.Request, v i
 	return nil
 }
 
-func (c *mockHTTPClient) GetCredentials() APICredentials {
-	return c.APICredentials
+func (c *mockHTTPClient) GetCredentials() APIParams {
+	return c.APIParams
 }
 
 func (c *mockHTTPClient) SetSession(s APISession) {
 	c.APISession = s
 }
 
-func (c *mockHTTPClient) GetAPICredentials() APICredentials {
-	return c.APICredentials
+func (c *mockHTTPClient) GetAPICredentials() APIParams {
+	return c.APIParams
 }
 
 func (c *mockHTTPClient) SetOrganization(orgId int, orgNodeId string) {

@@ -24,9 +24,15 @@ type APISession struct {
 	IsRefreshed  bool
 }
 
-type APICredentials struct {
-	ApiKey    string
-	ApiSecret string
+type APIParams struct {
+	ApiKey        string
+	ApiSecret     string
+	Port          string
+	ApiHost       string
+	ApiHost2      string
+	UploadBucket  string
+	UseConfigFile bool
+	Profile       string
 }
 
 type errorResponse struct {
@@ -35,14 +41,12 @@ type errorResponse struct {
 }
 
 type Client struct {
-	APISession     APISession
-	APICredentials APICredentials
-	HTTPClient     *http.Client
-	BaseUrl        string
+	APISession APISession
+	aPIParams  APIParams
+	HTTPClient *http.Client
 
 	OrganizationNodeId string
 	OrganizationId     int
-	UploadBucket       string
 
 	Organization   OrganizationService
 	Authentication AuthenticationService
@@ -52,23 +56,21 @@ type Client struct {
 }
 
 // NewClient creates a new Pennsieve HTTP client.
-func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
+func NewClient(params APIParams) *Client {
 
 	c := &Client{
 		APISession:         APISession{},
-		APICredentials:     APICredentials{},
+		aPIParams:          params,
 		HTTPClient:         &http.Client{Timeout: time.Minute},
 		OrganizationNodeId: "",
 		OrganizationId:     0,
-		UploadBucket:       DefaultUploadBucket,
-		BaseUrl:            baseUrlV1,
 	}
 
-	c.Authentication = NewAuthenticationService(c, baseUrlV1)
-	c.Organization = NewOrganizationService(c, baseUrlV1)
-	c.User = NewUserService(c, baseUrlV1)
-	c.Dataset = NewDatasetService(c, baseUrlV1)
-	c.Manifest = NewManifestService(c, baseUrlV2)
+	c.Authentication = NewAuthenticationService(c, params.ApiHost)
+	c.Organization = NewOrganizationService(c, params.ApiHost)
+	c.User = NewUserService(c, params.ApiHost)
+	c.Dataset = NewDatasetService(c, params.ApiHost)
+	c.Manifest = NewManifestService(c, params.ApiHost2)
 
 	c.Authentication.getCognitoConfig()
 
@@ -78,20 +80,10 @@ func NewClient(baseUrlV1 string, baseUrlV2 string) *Client {
 type PennsieveHTTPClient interface {
 	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
 	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
-	GetAPICredentials() APICredentials
-	GetCredentials() APICredentials
+	GetAPIParams() *APIParams
 	SetSession(s APISession)
 	SetOrganization(orgId int, orgNodeId string)
-	SetBasePathForServices(baseUrlV1 string, baseUrlV2 string)
-}
-
-func (c *Client) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
-
-	c.Organization.SetBaseUrl(baseUrlV1)
-	c.Authentication.SetBaseUrl(baseUrlV1)
-	c.User.SetBaseUrl(baseUrlV1)
-	c.Dataset.SetBaseUrl(baseUrlV1)
-	c.Manifest.SetBaseUrl(baseUrlV2)
+	Updateparams(params APIParams)
 }
 
 // sendUnauthenticatedRequest sends a http request without authentication
@@ -135,7 +127,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 
 		// We are using reAuthenticate instead of refresh pathway as eventually, the refresh-token
 		// also expires and there is no real reason why we don't just re-authenticate.`
-		_, err := c.Authentication.ReAuthenticate()
+		_, err := c.Authentication.Authenticate(c.aPIParams.ApiKey, c.aPIParams.ApiSecret)
 
 		if err != nil {
 			log.Println("Error authenticating:", err)
@@ -174,19 +166,26 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 	return nil
 }
 
-func (c *Client) GetCredentials() APICredentials {
-	return c.APICredentials
-}
-
 func (c *Client) SetSession(s APISession) {
 	c.APISession = s
 }
 
-func (c *Client) GetAPICredentials() APICredentials {
-	return c.APICredentials
+func (c *Client) GetAPIParams() *APIParams {
+	return &c.aPIParams
 }
 
 func (c *Client) SetOrganization(orgId int, orgNodeId string) {
 	c.OrganizationId = orgId
 	c.OrganizationNodeId = orgNodeId
+}
+
+func (c *Client) Updateparams(params APIParams) {
+	c.aPIParams = params
+
+	c.Organization.SetBaseUrl(params.ApiHost)
+	c.Authentication.SetBaseUrl(params.ApiHost)
+	c.User.SetBaseUrl(params.ApiHost)
+	c.Dataset.SetBaseUrl(params.ApiHost)
+	c.Manifest.SetBaseUrl(params.ApiHost2)
+
 }
