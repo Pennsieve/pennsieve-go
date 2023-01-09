@@ -1,6 +1,7 @@
 package pennsieve
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
@@ -15,6 +16,7 @@ type DatasetService interface {
 	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
+	Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error)
 }
 
 type datasetService struct {
@@ -105,4 +107,37 @@ func (d *datasetService) List(ctx context.Context, limit int, offset int) (*data
 
 func (s *datasetService) SetBaseUrl(url string) {
 	s.BaseUrl = url
+}
+
+func (d *datasetService) Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error) {
+	postParams := fmt.Sprintf(`
+		{
+			"name": "%s",
+			"description": "%s",
+			"tags": %v
+		}`, name, description, tags)
+
+	postParamsPayload := bytes.NewReader([]byte(postParams))
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/datasets/", d.BaseUrl), postParamsPayload)
+	if err != nil {
+		return nil, err
+	}
+
+	if ctx == nil {
+		ctx = req.Context()
+	}
+
+	res := dataset.CreateDatasetResponse{}
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
+		fmt.Println("SendRequest Error: ", err)
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+
 }
