@@ -1,6 +1,7 @@
 package pennsieve
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 type DatasetService interface {
@@ -16,7 +16,7 @@ type DatasetService interface {
 	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
-	Create(ctx context.Context, name, description string, tags []string) (*dataset.CreateDatasetResponse, error)
+	Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error)
 }
 
 type datasetService struct {
@@ -109,25 +109,27 @@ func (s *datasetService) SetBaseUrl(url string) {
 	s.BaseUrl = url
 }
 
-func (d *datasetService) Create(ctx context.Context, name, description string, tags []string) (*dataset.CreateDatasetResponse, error) {
+func (d *datasetService) Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error) {
+	postParams := fmt.Sprintf(`
+		{
+			"name": "%s",
+			"description": "%s",
+			"tags": %v
+		}`, name, description, tags)
 
-	params := url.Values{}
+	postParamsPayload := bytes.NewReader([]byte(postParams))
 
-	params.Add("name", name)
-	params.Add("description", description)
-
-	for i := 0; i < len(tags); i++ {
-		params.Add("tags", tags[i])
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/datasets/", d.BaseUrl), strings.NewReader(params.Encode()))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/datasets/", d.BaseUrl), postParamsPayload)
 	if err != nil {
 		return nil, err
 	}
 
+	if ctx == nil {
+		ctx = req.Context()
+	}
+
 	res := dataset.CreateDatasetResponse{}
 	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
-
 		fmt.Println("SendRequest Error: ", err)
 		return nil, err
 	}
