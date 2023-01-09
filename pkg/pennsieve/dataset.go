@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type DatasetService interface {
@@ -15,6 +16,7 @@ type DatasetService interface {
 	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
+	Create(apiKey, name, description string)
 }
 
 type datasetService struct {
@@ -105,4 +107,35 @@ func (d *datasetService) List(ctx context.Context, limit int, offset int) (*data
 
 func (s *datasetService) SetBaseUrl(url string) {
 	s.BaseUrl = url
+}
+
+func (d *datasetService) Create(ctx context.Context, name, description string, tags []string) (*dataset.CreateDatasetResponse, error) {
+
+	params := url.Values{}
+
+	params.Add("name", name)
+	params.Add("description", description)
+
+	for i := 0; i < len(tags); i++ {
+		params.Add("tags", tags[i])
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/datasets/", d.BaseUrl), strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, err
+	}
+
+	res := dataset.CreateDatasetResponse{}
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
+
+		fmt.Println("SendRequest Error: ", err)
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+
 }

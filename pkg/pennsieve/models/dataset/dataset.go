@@ -73,6 +73,15 @@ type ListDatasetResponse struct {
 	TotalCount int        `json:"totalCount"`
 	Datasets   []Datasets `json:"datasets"`
 }
+
+type CreateDatasetResponse struct {
+	Content      Content       `json:"content"`
+	Organization string        `json:"organization"`
+	Publication  Publication   `json:"publication,omitempty"`
+	Properties   []interface{} `json:"properties"`
+	CanPublish   bool          `json:"canPublish"`
+	Locked       bool          `json:"locked"`
+}
 type CollaboratorCounts struct {
 	Users         int `json:"users"`
 	Organizations int `json:"organizations"`
