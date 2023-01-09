@@ -16,7 +16,7 @@ type DatasetService interface {
 	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
-	Create(apiKey, name, description string)
+	Create(ctx context.Context, name, description string, tags []string)
 }
 
 type datasetService struct {
