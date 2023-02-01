@@ -10,28 +10,16 @@ import (
 // We mock the HTTP-client to return a user.
 func TestGetOrg(t *testing.T) {
 
-	ht := mockHTTPClient{
-		APISession:         APISession{},
-		APICredentials:     APICredentials{},
-		OrganizationNodeId: "",
-		OrganizationId:     0,
-	}
-
-	testOrganizationService := NewOrganizationService(&ht, "https://test.com")
+	client := NewClient(APIParams{}, "")
+	testOrganizationService := client.Organization
 	org, _ := testOrganizationService.Get(context.Background(), "N:org:1234")
 	assert.Equal(t, "Valid Organization", org.Organization.Name, "Org name must match.")
 }
 
 func TestList(t *testing.T) {
 
-	mockClient := mockHTTPClient{
-		APISession:         APISession{},
-		APICredentials:     APICredentials{},
-		OrganizationNodeId: "",
-		OrganizationId:     0,
-	}
-
-	testOrganizationService := NewOrganizationService(&mockClient, "https://test.com")
+	client := NewClient(APIParams{}, "")
+	testOrganizationService := client.Organization
 	org, _ := testOrganizationService.List(context.Background())
 
 	assert.Equal(t, "First Org", org.Organizations[0].Organization.Name, "Org name must match.")

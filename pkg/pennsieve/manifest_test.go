@@ -9,14 +9,9 @@ import (
 
 func TestCreateManifest(t *testing.T) {
 
-	ht := mockHTTPClient{
-		APISession:         APISession{},
-		APICredentials:     APICredentials{},
-		OrganizationNodeId: "",
-		OrganizationId:     0,
-	}
+	client := NewClient(APIParams{}, "")
 
-	testManifestService := NewManifestService(&ht, "https://test.com")
+	testManifestService := client.Manifest
 	manifest, _ := testManifestService.Create(context.Background(), manifest.DTO{
 		ID:        "",
 		DatasetId: "",

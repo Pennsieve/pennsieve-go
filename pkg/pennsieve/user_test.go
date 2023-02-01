@@ -10,14 +10,9 @@ import (
 // We mock the HTTP-client to return a user.
 func TestGetUser(t *testing.T) {
 
-	ht := mockHTTPClient{
-		APISession:         APISession{},
-		APICredentials:     APICredentials{},
-		OrganizationNodeId: "",
-		OrganizationId:     0,
-	}
+	client := NewClient(APIParams{}, "")
 
-	testUserService := NewUserService(&ht, "http://test.com")
+	testUserService := client.User
 
 	user, _ := testUserService.GetUser(context.Background())
 

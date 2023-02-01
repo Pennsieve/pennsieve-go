@@ -27,17 +27,38 @@ type AuthenticationService interface {
 	SetClient(client *Client)
 }
 
-func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string) *authenticationService {
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string, cognitoIdentityProviderEndpoint string) *authenticationService {
+	loadOptions := []func(*config.LoadOptions) error{config.WithRegion("us-east-1")}
+	if cognitoIdentityProviderEndpoint != "" {
+		endpointResolver := aws.EndpointResolverWithOptionsFunc(func(service string, region string, options ...interface{}) (aws.Endpoint, error) {
+			if service == cognitoidentityprovider.ServiceID {
+				return aws.Endpoint{
+					URL: cognitoIdentityProviderEndpoint,
+				}, nil
+			}
+			// Returning EndpointNotFoundError will cause service to fallback to default
+			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+		})
+		loadOptions = append(loadOptions, config.WithEndpointResolverWithOptions(endpointResolver))
+	}
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		loadOptions...,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return &authenticationService{
-		client:  client,
-		BaseUrl: baseUrl,
+		client:    client,
+		BaseUrl:   baseUrl,
+		awsConfig: cfg,
 	}
 }
 
 type authenticationService struct {
-	client  PennsieveHTTPClient
-	config  authentication.CognitoConfig
-	BaseUrl string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
+	client    PennsieveHTTPClient
+	config    authentication.CognitoConfig
+	BaseUrl   string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
+	awsConfig aws.Config
 }
 
 // getCognitoConfig returns cognito urls from cloud.
@@ -81,14 +102,7 @@ func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-east-1"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	svc := cognitoidentityprovider.NewFromConfig(cfg)
+	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
 	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
 
@@ -137,14 +151,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 		ClientId: clientID,
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-east-1"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	svc := cognitoidentityprovider.NewFromConfig(cfg)
+	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
 
 	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
@@ -178,7 +185,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 
 	if x, found := claims["custom:organization_id"]; found {
 		if orgId, ok = x.(string); !ok {
-			log.Panicln("OrgID is not an int in the claim")
+			log.Panicln("OrgID is not an string in the claim")
 		}
 	} else {
 		log.Panicln("Claim does not contain an OrgID")
@@ -192,7 +199,11 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 	//	log.Panicln("Claim does not contain an iss")
 	//}
 
-	orgIdInt, _ := strconv.Atoi(orgId)
+	orgIdInt, err := strconv.Atoi(orgId)
+	if err != nil {
+		log.Panicf("OrgID: %q is not an int\n", orgIdInt)
+
+	}
 	creds := APISession{
 		Token:        *accessToken,
 		RefreshToken: *refreshToken,
@@ -221,14 +232,7 @@ func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	poolId := s.config.IdentityPool.ID
 	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-east-1"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	svc := cognitoidentity.NewFromConfig(cfg)
+	svc := cognitoidentity.NewFromConfig(s.awsConfig)
 
 	// Get an identity from Cognito's identity pool using authResponse from userpool
 	idRes, err := svc.GetId(context.Background(), &cognitoidentity.GetIdInput{
