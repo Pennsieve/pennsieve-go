@@ -28,7 +28,7 @@ func NewOrganizationService(client PennsieveHTTPClient, baseUrl string) *organiz
 // List lists all the organizations that the user belongs to.
 func (o *organizationService) List(ctx context.Context) (*organization.GetOrganizationsResponse, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizatinons", o.baseUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/organizations", o.baseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
