@@ -18,12 +18,8 @@ type ClientTestSuite struct {
 	TestClient *Client
 }
 
-const expectedOrgId = "N:organization:client-test"
-
 func (s *ClientTestSuite) SetupTest() {
-	s.MockCognitoServer = NewMockCognitoServer(s.T(), map[string]any{
-		OrgNodeIdClaimKey: expectedOrgId,
-		OrgIdClaimKey:     "9876"})
+	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
 	s.TestClient = NewClient(
 		APIParams{ApiHost: s.Server.URL},
@@ -116,7 +112,7 @@ func (s *ClientTestSuite) TestSendRequest() {
 		s.NoError(json.NewDecoder(request.Body).Decode(&actualReqBody))
 		s.Equal(reqBody, actualReqBody)
 		// Check Authentication headers
-		s.Equal(s.MockCognitoServer.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
+		s.Equal(s.TestClient.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
 		expectedAuthHeader := fmt.Sprintf("Bearer %s", s.TestClient.APISession.Token)
 		s.Equal(expectedAuthHeader, request.Header.Get("Authorization"))
 		// Send expected response body
@@ -143,11 +139,10 @@ func (s *ClientTestSuite) TestSendRequest() {
 
 func (s *ClientTestSuite) TestSendRequestExpired() {
 	expectedURL := "/expired-resource-name"
-	s.TestClient.OrganizationNodeId = expectedOrgId
 	s.Mux.HandleFunc(expectedURL, func(writer http.ResponseWriter, request *http.Request) {
 		s.Equal("GET", request.Method, "unexpected http method for SendRequestExpired")
 		// Check Authentication headers
-		s.Equal(s.MockCognitoServer.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
+		s.Equal(s.TestClient.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
 		expectedAuthHeader := fmt.Sprintf("Bearer %s", s.TestClient.APISession.Token)
 		s.Equal(expectedAuthHeader, request.Header.Get("Authorization"))
 		// Send response
@@ -162,16 +157,17 @@ func (s *ClientTestSuite) TestSendRequestExpired() {
 	s.NoError(err)
 
 	response := responseBody{}
-	firstAccessToken := "first-api-access-token"
-	s.TestClient.APISession = APISession{
-		Token:      firstAccessToken,
-		Expiration: time.Now().Add(time.Minute * 30),
-	}
+
+	// Send initial request to initialize APISession and org id
+	s.NoError(s.TestClient.sendRequest(context.Background(), request, &response))
+
+	// Session should still be active
+	firstAccessToken := s.TestClient.APISession.Token
 	s.NoError(s.TestClient.sendRequest(context.Background(), request, &response))
 	s.Equal(firstAccessToken, s.TestClient.APISession.Token)
 
-	//Expire session to make sure we get a new one
-	s.TestClient.APISession.Expiration = time.Now().Add(-time.Minute * 30)
+	// Expire session to make sure we get a new one
+	s.TestClient.APISession.Expiration = time.Now().Add(-time.Minute * 30).UTC()
 	s.NoError(s.TestClient.sendRequest(context.Background(), request, &response))
 	s.NotEqual(firstAccessToken, s.TestClient.APISession.Token)
 	s.True(s.TestClient.APISession.Expiration.After(time.Now()))

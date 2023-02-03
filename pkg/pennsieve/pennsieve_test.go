@@ -18,8 +18,7 @@ import (
 // A httptest.Server that mocks Amazon CognitoIdentityProvider
 // Create with NewMockCognitoServer*() to get one with the correct handler already in place.
 type MockCognitoServer struct {
-	IdProviderServer   *httptest.Server
-	OrganizationNodeId string
+	IdProviderServer *httptest.Server
 }
 
 const (
@@ -33,12 +32,13 @@ func NewMockCognitoServer(t *testing.T, expectedClaims map[string]any) MockCogni
 	if expectedClaims == nil {
 		return NewMockCognitoServerDefault(t)
 	}
+	counter := 0
 	cognitoServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.String() != "/" {
 			t.Errorf("unexpected cognito identity provider call: expected: %q, got: %q", "/", request.URL)
 		}
 		claims := jwt.MapClaims{
-			"exp": time.Now().Add(time.Hour).Unix(),
+			"exp": time.Now().Add(time.Hour).UTC().Unix(),
 		}
 		for k, v := range expectedClaims {
 			claims[k] = v
@@ -49,8 +49,11 @@ func NewMockCognitoServer(t *testing.T, expectedClaims map[string]any) MockCogni
 		if err != nil {
 			t.Errorf("error getting signed string from JWT token: %s", err)
 		}
+		// hack to get a probably unique access token
+		counter++
+		accessToken := fmt.Sprintf("access-token-%d", counter)
 		_, err = fmt.Fprintf(writer, `{"AuthenticationResult": {"AccessToken": %q, "ExpiresIn": 3600, "IdToken": %q, "RefreshToken": %q, "TokenType": "Bearer"}, "ChallengeParameters": {}}`,
-			"mock-access-token",
+			accessToken,
 			idTokenString,
 			"mock-refresh-token")
 		if err != nil {
@@ -58,11 +61,7 @@ func NewMockCognitoServer(t *testing.T, expectedClaims map[string]any) MockCogni
 		}
 	}))
 
-	server := MockCognitoServer{IdProviderServer: cognitoServer}
-	if orgNodeId, ok := expectedClaims[OrgNodeIdClaimKey]; ok {
-		server.OrganizationNodeId = orgNodeId.(string)
-	}
-	return server
+	return MockCognitoServer{IdProviderServer: cognitoServer}
 }
 
 // Returns a MockCognitoServer configured to always return a JWT IdToken that includes org node id and org id claims.
