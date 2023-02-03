@@ -37,22 +37,12 @@ func NewMockCognitoServer(t *testing.T, expectedClaims map[string]any) MockCogni
 		if request.URL.String() != "/" {
 			t.Errorf("unexpected cognito identity provider call: expected: %q, got: %q", "/", request.URL)
 		}
-		claims := jwt.MapClaims{
-			"exp": time.Now().Add(time.Hour).UTC().Unix(),
-		}
-		for k, v := range expectedClaims {
-			claims[k] = v
-		}
-		idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-		idTokenString, err := idToken.SignedString([]byte("test-signing-key"))
-		if err != nil {
-			t.Errorf("error getting signed string from JWT token: %s", err)
-		}
-		// hack to get a probably unique access token
+		idTokenString := NewTestJWTWithClaims(t, expectedClaims, time.Hour)
+		// hack to probably get a unique access token
 		counter++
 		accessToken := fmt.Sprintf("access-token-%d", counter)
-		_, err = fmt.Fprintf(writer, `{"AuthenticationResult": {"AccessToken": %q, "ExpiresIn": 3600, "IdToken": %q, "RefreshToken": %q, "TokenType": "Bearer"}, "ChallengeParameters": {}}`,
+		_, err := fmt.Fprintf(writer, `{"AuthenticationResult": {"AccessToken": %q, "ExpiresIn": 3600, "IdToken": %q, "RefreshToken": %q, "TokenType": "Bearer"}, "ChallengeParameters": {}}`,
 			accessToken,
 			idTokenString,
 			"mock-refresh-token")
@@ -77,11 +67,46 @@ func (m *MockCognitoServer) Close() {
 	m.IdProviderServer.Close()
 }
 
+func NewTestJWTWithClaims(t *testing.T, customClaims map[string]any, sessionTTL time.Duration) string {
+	claims := jwt.MapClaims{
+		"exp": time.Now().Add(sessionTTL).UTC().Unix(),
+	}
+	for k, v := range customClaims {
+		claims[k] = v
+	}
+	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	idTokenString, err := idToken.SignedString([]byte("test-signing-key"))
+	if err != nil {
+		t.Errorf("error getting signed string from JWT token: %s", err)
+	}
+	return idTokenString
+}
+
+func NewTestJWT(t *testing.T, orgNodeId, orgId string, sessionTTL time.Duration) string {
+	return NewTestJWTWithClaims(t, map[string]any{
+		OrgNodeIdClaimKey: orgNodeId,
+		OrgIdClaimKey:     orgId,
+	}, sessionTTL)
+}
+
+// A httptest.Server intended to mock an external server.
+// The intended use is that Mux should be Server's Handler.
+// Mux is separated out this way so that tests can add handlers to
+// an already started Server by adding to Mux instead of Server.
+type MockServer struct {
+	Server *httptest.Server
+	Mux    *http.ServeMux
+}
+
+func (m *MockServer) Close() {
+	m.Server.Close()
+}
+
 // A httptest.Server intended to mock a Pennsieve API server.
 // In tests, Handlers should be added to Mux.
 type MockPennsieveServer struct {
-	Server *httptest.Server
-	Mux    *http.ServeMux
+	MockServer
 }
 
 // Returns a MockPennsieveServer with the same configuration as
@@ -123,10 +148,10 @@ func NewMockPennsieveServer(t *testing.T, expectedCognitoConfig authentication.C
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		t.Errorf("Unhandled request: method: %q, path: %q. If this call is expected add a HandleFunc to MockPennsieveServer.Mux", request.Method, request.URL)
 	})
-
-	return MockPennsieveServer{Server: server, Mux: mux}
-}
-
-func (m *MockPennsieveServer) Close() {
-	m.Server.Close()
+	return MockPennsieveServer{
+		MockServer{
+			Server: server,
+			Mux:    mux,
+		},
+	}
 }
