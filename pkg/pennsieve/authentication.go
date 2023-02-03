@@ -27,19 +27,31 @@ type AuthenticationService interface {
 	SetClient(client *Client)
 }
 
-func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string, cognitoIdentityProviderEndpoint string) *authenticationService {
+type AWSCognitoEndpoints struct {
+	IdentityProviderEndpoint string
+	IdentityEndpoint         string
+}
+
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string,
+	awsCognitoEndpoints *AWSCognitoEndpoints) *authenticationService {
 	loadOptions := []func(*config.LoadOptions) error{config.WithRegion("us-east-1")}
-	if cognitoIdentityProviderEndpoint != "" {
+
+	if awsCognitoEndpoints != nil {
+		endpointMap := map[string]string{
+			cognitoidentityprovider.ServiceID: awsCognitoEndpoints.IdentityProviderEndpoint,
+			cognitoidentity.ServiceID:         awsCognitoEndpoints.IdentityEndpoint,
+		}
 		endpointResolver := aws.EndpointResolverWithOptionsFunc(func(service string, region string, options ...interface{}) (aws.Endpoint, error) {
-			if service == cognitoidentityprovider.ServiceID {
+			if endpoint := endpointMap[service]; endpoint != "" {
 				return aws.Endpoint{
-					URL: cognitoIdentityProviderEndpoint,
+					URL: endpoint,
 				}, nil
 			}
 			// Returning EndpointNotFoundError will cause service to fallback to default
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 		})
 		loadOptions = append(loadOptions, config.WithEndpointResolverWithOptions(endpointResolver))
+
 	}
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		loadOptions...,

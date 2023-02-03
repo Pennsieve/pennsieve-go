@@ -22,7 +22,7 @@ func (s *DatasetServiceTestSuite) SetupTest() {
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
 	client := NewClient(APIParams{
 		ApiHost: s.Server.URL,
-	}, s.IdProviderServer.URL)
+	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
 	s.TestService = client.Dataset
 }
 
@@ -40,13 +40,14 @@ func (s *DatasetServiceTestSuite) TestGetDataset() {
 		datasetResponse := dataset.GetDatasetResponse{Content: dataset.Content{Name: expectedDatasetName}}
 		body, err := json.Marshal(datasetResponse)
 		if s.NoError(err) {
-			writer.Write(body)
+			_, err := writer.Write(body)
+			s.NoError(err)
 		}
 	})
 
-	dataset, err := s.TestService.Get(context.Background(), expectedDatasetId)
+	getDatasetResp, err := s.TestService.Get(context.Background(), expectedDatasetId)
 	if s.NoError(err) {
-		s.Equal(expectedDatasetName, dataset.Content.Name, "unexpected name")
+		s.Equal(expectedDatasetName, getDatasetResp.Content.Name, "unexpected name")
 	}
 }
 
@@ -64,7 +65,6 @@ func (s *DatasetServiceTestSuite) TestCreateDataset() {
 		}{}
 		err := json.NewDecoder(request.Body).Decode(&requestBody)
 		if err != nil {
-			request.Body.Close()
 			s.Fail("error decoding create body request", err)
 		}
 		s.Equal(expectedName, requestBody.Name, "unexpected name in request body")
@@ -79,7 +79,8 @@ func (s *DatasetServiceTestSuite) TestCreateDataset() {
 		}
 		respBody, err := json.Marshal(resp)
 		if s.NoError(err) {
-			writer.Write(respBody)
+			_, err := writer.Write(respBody)
+			s.NoError(err)
 
 		}
 	})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest"
+	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest/manifestFile"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"testing"
@@ -24,7 +25,7 @@ func (s *ManifestServiceTestSuite) SetupTest() {
 	client := NewClient(APIParams{
 		ApiHost:  s.APIServer.Server.URL,
 		ApiHost2: s.API2Server.Server.URL,
-	}, s.IdProviderServer.URL)
+	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
 	s.TestService = client.Manifest
 }
 
@@ -35,25 +36,43 @@ func (s *ManifestServiceTestSuite) TearDownTest() {
 }
 
 func (s *ManifestServiceTestSuite) TestCreateManifest() {
-	expectedNodeId := "1234"
+	expectedManifestId := "1234"
+	expectedManifestNodeId := "N:manifest:1234"
 	expectedDatasetId := "N:Dataset:1a2b"
-	s.API2Server.Mux.HandleFunc("/manifest/", func(writer http.ResponseWriter, request *http.Request) {
+	expectedReqDto := manifest.DTO{
+		ID:        expectedManifestId,
+		DatasetId: expectedDatasetId,
+		Files: []manifestFile.FileDTO{
+			{S3Key: "/path/to/one"},
+			{S3Key: "/path/to/two"},
+		},
+		Status: manifest.Initiated,
+	}
+
+	s.API2Server.Mux.HandleFunc("/manifest", func(writer http.ResponseWriter, request *http.Request) {
 		s.Equal("POST", request.Method, "unexpected http method for Create Manifest")
+		err := request.ParseForm()
+		if s.NoError(err) {
+			s.Equal(expectedDatasetId, request.Form.Get("dataset_id"), "unexpected dataset_id in query param")
+		}
+		reqDto := manifest.DTO{}
+		err = json.NewDecoder(request.Body).Decode(&reqDto)
+		if s.NoError(err) {
+			s.Equal(expectedReqDto, reqDto, "unexpected Create reqeust body")
+		}
 		respObj := manifest.PostResponse{
-			ManifestNodeId: expectedNodeId,
+			ManifestNodeId: expectedManifestNodeId,
 		}
 		respBody, err := json.Marshal(respObj)
 		if s.NoError(err) {
-			writer.Write(respBody)
+			_, err := writer.Write(respBody)
+			s.NoError(err)
 		}
 	})
-	manifest, _ := s.TestService.Create(context.Background(), manifest.DTO{
-		ID:        expectedNodeId,
-		DatasetId: expectedDatasetId,
-		Files:     nil,
-		Status:    0,
-	})
-	s.Equal(expectedNodeId, manifest.ManifestNodeId, "unexpected manifest node id")
+	postResponse, err := s.TestService.Create(context.Background(), expectedReqDto)
+	if s.NoError(err) {
+		s.Equal(expectedManifestNodeId, postResponse.ManifestNodeId, "unexpected manifest node id")
+	}
 }
 
 func TestManifestService(t *testing.T) {

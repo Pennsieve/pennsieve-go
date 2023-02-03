@@ -21,7 +21,7 @@ func (s *UserServiceTestSuite) SetupTest() {
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
 	client := NewClient(APIParams{
 		ApiHost: s.Server.URL,
-	}, s.IdProviderServer.URL)
+	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
 	s.TestService = client.User
 }
 
@@ -40,13 +40,14 @@ func (s *UserServiceTestSuite) TestGetUser() {
 		}
 		respBody, err := json.Marshal(respUser)
 		if s.NoError(err) {
-			writer.Write(respBody)
+			_, err = writer.Write(respBody)
+			s.NoError(err)
 		}
 	})
 
-	user, err := s.TestService.GetUser(context.Background())
+	userResp, err := s.TestService.GetUser(context.Background())
 	if s.NoError(err) {
-		s.Equal(expectedUserId, user.ID, "UserID must match.")
+		s.Equal(expectedUserId, userResp.ID, "UserID must match.")
 	}
 
 }

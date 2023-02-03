@@ -19,7 +19,9 @@ type OrganizationServiceTestSuite struct {
 func (s *OrganizationServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
-	client := NewClient(APIParams{ApiHost: s.Server.URL}, s.IdProviderServer.URL)
+	client := NewClient(
+		APIParams{ApiHost: s.Server.URL},
+		&AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
 	s.TestService = client.Organization
 }
 
@@ -41,7 +43,8 @@ func (s *OrganizationServiceTestSuite) TestGetOrg() {
 		}
 		respBody, err := json.Marshal(respOrg)
 		if s.NoError(err) {
-			writer.Write(respBody)
+			_, err := writer.Write(respBody)
+			s.NoError(err)
 		}
 	})
 	org, err := s.TestService.Get(context.Background(), expectedOrgId)
@@ -70,7 +73,8 @@ func (s *OrganizationServiceTestSuite) TestList() {
 		}
 		respBody, err := json.Marshal(respList)
 		if s.NoError(err) {
-			writer.Write(respBody)
+			_, err := writer.Write(respBody)
+			s.NoError(err)
 		}
 	})
 

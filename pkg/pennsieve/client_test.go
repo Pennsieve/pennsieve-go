@@ -1,68 +1,183 @@
 package pennsieve
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/organization"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/user"
+	"github.com/stretchr/testify/suite"
 	"net/http"
+	"testing"
+	"time"
 )
 
-type mockHTTPClient struct {
-	APISession         APISession
-	APIParams          APIParams
-	OrganizationNodeId string
-	OrganizationId     int
+type ClientTestSuite struct {
+	suite.Suite
+	MockCognitoServer
+	MockPennsieveServer
+	TestClient *Client
 }
 
-func (c *mockHTTPClient) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
-	return c.sendRequest(ctx, req, v)
+const expectedOrgId = "N:organization:client-test"
+
+func (s *ClientTestSuite) SetupTest() {
+	s.MockCognitoServer = NewMockCognitoServer(s.T(), map[string]any{
+		OrgNodeIdClaimKey: expectedOrgId,
+		OrgIdClaimKey:     "9876"})
+	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	s.TestClient = NewClient(
+		APIParams{ApiHost: s.Server.URL},
+		&AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
 }
 
-func (c *mockHTTPClient) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (s *ClientTestSuite) TearDownTest() {
+	s.MockCognitoServer.Close()
+	s.MockPennsieveServer.Close()
+}
 
-	// Return an object of the requested type.
-	switch t := v.(type) {
-	case *user.User:
-		v.(*user.User).ID = "1234"
-	case *manifest.PostResponse:
-		v.(*manifest.PostResponse).ManifestNodeId = "1234"
-	case *dataset.GetDatasetResponse:
-		v.(*dataset.GetDatasetResponse).Content.Name = "Test Dataset"
-	case *organization.GetOrganizationResponse:
-		v.(*organization.GetOrganizationResponse).Organization.Name = "Valid Organization"
-	case *organization.GetOrganizationsResponse:
-		orgs := []organization.Organizations{
-			{Organization: organization.Organization{Name: "First Org"}},
-			{Organization: organization.Organization{Name: "Second Org"}},
-		}
-		v.(*organization.GetOrganizationsResponse).Organizations = orgs
-	default:
-		fmt.Println(t)
+type requestBody struct {
+	Name     string `json:"name"`
+	ReqValue int    `json:"req_value"`
+}
+
+type responseBody struct {
+	Name      string `json:"name"`
+	RespValue []int  `json:"resp_value"`
+}
+
+func (s *ClientTestSuite) TestSendUnauthenticatedRequest() {
+	expectedQueryKey := "query_param_key"
+	expectedQueryValue := "query_param_value"
+	expectedURL := "/resource-name"
+
+	reqBody := requestBody{
+		Name:     "request name",
+		ReqValue: 38,
 	}
 
-	return nil
+	expectedRespBody := responseBody{
+		Name:      "response body",
+		RespValue: []int{1, 2, 3},
+	}
+
+	s.Mux.HandleFunc(expectedURL, func(writer http.ResponseWriter, request *http.Request) {
+		s.Equal("POST", request.Method, "unexpected http method for SendUnauthenticated")
+		// Check query params
+		s.NoError(request.ParseForm())
+		s.Equal(expectedQueryValue, request.Form.Get(expectedQueryKey))
+		// Check request body
+		actualReqBody := requestBody{}
+		s.NoError(json.NewDecoder(request.Body).Decode(&actualReqBody))
+		s.Equal(reqBody, actualReqBody)
+		// Send expected response body
+		respBodyBytes, err := json.Marshal(expectedRespBody)
+		s.NoError(err)
+		_, err = writer.Write(respBodyBytes)
+		s.NoError(err)
+	})
+
+	reqBodyBytes, err := json.Marshal(reqBody)
+	s.NoError(err)
+	reqBodyReader := bytes.NewBuffer(reqBodyBytes)
+	requestURL := fmt.Sprintf("%s%s?%s=%s", s.Server.URL, expectedURL, expectedQueryKey, expectedQueryValue)
+	request, err := http.NewRequest("POST", requestURL, reqBodyReader)
+	s.NoError(err)
+
+	actualRespBody := responseBody{}
+
+	s.NoError(s.TestClient.sendUnauthenticatedRequest(context.Background(), request, &actualRespBody))
+
+	s.Equal(expectedRespBody, actualRespBody)
+
 }
 
-func (c *mockHTTPClient) GetCredentials() APIParams {
-	return c.APIParams
+func (s *ClientTestSuite) TestSendRequest() {
+	expectedQueryKey := "query_param_key"
+	expectedQueryValue := "query_param_value"
+	expectedURL := "/authenticated-resource-name"
+
+	reqBody := requestBody{
+		Name:     "request name",
+		ReqValue: 38,
+	}
+
+	expectedRespBody := responseBody{
+		Name:      "response body",
+		RespValue: []int{1, 2, 3},
+	}
+
+	s.Mux.HandleFunc(expectedURL, func(writer http.ResponseWriter, request *http.Request) {
+		s.Equal("PUT", request.Method, "unexpected http method for SendRequest")
+		// Check query params
+		s.NoError(request.ParseForm())
+		s.Equal(expectedQueryValue, request.Form.Get(expectedQueryKey))
+		// Check request body
+		actualReqBody := requestBody{}
+		s.NoError(json.NewDecoder(request.Body).Decode(&actualReqBody))
+		s.Equal(reqBody, actualReqBody)
+		// Check Authentication headers
+		s.Equal(s.MockCognitoServer.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
+		expectedAuthHeader := fmt.Sprintf("Bearer %s", s.TestClient.APISession.Token)
+		s.Equal(expectedAuthHeader, request.Header.Get("Authorization"))
+		// Send expected response body
+		respBodyBytes, err := json.Marshal(expectedRespBody)
+		s.NoError(err)
+		_, err = writer.Write(respBodyBytes)
+		s.NoError(err)
+	})
+
+	reqBodyBytes, err := json.Marshal(reqBody)
+	s.NoError(err)
+	reqBodyReader := bytes.NewBuffer(reqBodyBytes)
+	requestURL := fmt.Sprintf("%s%s?%s=%s", s.Server.URL, expectedURL, expectedQueryKey, expectedQueryValue)
+	request, err := http.NewRequest("PUT", requestURL, reqBodyReader)
+	s.NoError(err)
+
+	actualRespBody := responseBody{}
+
+	s.NoError(s.TestClient.sendRequest(context.Background(), request, &actualRespBody))
+
+	s.Equal(expectedRespBody, actualRespBody)
+
 }
 
-func (c *mockHTTPClient) SetSession(s APISession) {
-	c.APISession = s
+func (s *ClientTestSuite) TestSendRequestExpired() {
+	expectedURL := "/expired-resource-name"
+	s.TestClient.OrganizationNodeId = expectedOrgId
+	s.Mux.HandleFunc(expectedURL, func(writer http.ResponseWriter, request *http.Request) {
+		s.Equal("GET", request.Method, "unexpected http method for SendRequestExpired")
+		// Check Authentication headers
+		s.Equal(s.MockCognitoServer.OrganizationNodeId, request.Header.Get("X-ORGANIZATION-ID"))
+		expectedAuthHeader := fmt.Sprintf("Bearer %s", s.TestClient.APISession.Token)
+		s.Equal(expectedAuthHeader, request.Header.Get("Authorization"))
+		// Send response
+		respBodyBytes, err := json.Marshal(responseBody{})
+		s.NoError(err)
+		_, err = writer.Write(respBodyBytes)
+		s.NoError(err)
+	})
+
+	requestURL := fmt.Sprintf("%s%s", s.Server.URL, expectedURL)
+	request, err := http.NewRequest("GET", requestURL, nil)
+	s.NoError(err)
+
+	response := responseBody{}
+	firstAccessToken := "first-api-access-token"
+	s.TestClient.APISession = APISession{
+		Token:      firstAccessToken,
+		Expiration: time.Now().Add(time.Minute * 30),
+	}
+	s.NoError(s.TestClient.sendRequest(context.Background(), request, &response))
+	s.Equal(firstAccessToken, s.TestClient.APISession.Token)
+
+	//Expire session to make sure we get a new one
+	s.TestClient.APISession.Expiration = time.Now().Add(-time.Minute * 30)
+	s.NoError(s.TestClient.sendRequest(context.Background(), request, &response))
+	s.NotEqual(firstAccessToken, s.TestClient.APISession.Token)
+	s.True(s.TestClient.APISession.Expiration.After(time.Now()))
+
 }
 
-func (c *mockHTTPClient) GetAPICredentials() APIParams {
-	return c.APIParams
-}
-
-func (c *mockHTTPClient) SetOrganization(orgId int, orgNodeId string) {
-	c.OrganizationId = orgId
-	c.OrganizationNodeId = orgNodeId
-}
-
-func (c *mockHTTPClient) SetBasePathForServices(baseUrlV1 string, baseUrlV2 string) {
-
+func TestClientSuite(t *testing.T) {
+	suite.Run(t, new(ClientTestSuite))
 }
