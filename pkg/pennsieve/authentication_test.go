@@ -103,7 +103,7 @@ func (s *AuthenticationServiceTestSuite) TestAuthenticate() {
 	})
 
 	actualSession, err := s.TestService.Authenticate(expectedApiKey, expectedApiSecret)
-	if s.Nil(err) {
+	if s.NoError(err) {
 		s.Equal(expectedAccessToken, actualSession.Token)
 		s.Equal(expectedIdToken, actualSession.IdToken)
 		s.Equal(expectedRefreshToken, actualSession.RefreshToken)
