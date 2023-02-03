@@ -32,14 +32,22 @@ type AWSCognitoEndpoints struct {
 	IdentityEndpoint         string
 }
 
-func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string,
-	awsCognitoEndpoints *AWSCognitoEndpoints) *authenticationService {
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string, awsCognitoEndpoints *AWSCognitoEndpoints) *authenticationService {
+	cfg := newAwsConfig(awsCognitoEndpoints)
+	return &authenticationService{
+		client:    client,
+		BaseUrl:   baseUrl,
+		awsConfig: cfg,
+	}
+}
+
+func newAwsConfig(endpoints *AWSCognitoEndpoints) aws.Config {
 	loadOptions := []func(*config.LoadOptions) error{config.WithRegion("us-east-1")}
 
-	if awsCognitoEndpoints != nil {
+	if endpoints != nil {
 		endpointMap := map[string]string{
-			cognitoidentityprovider.ServiceID: awsCognitoEndpoints.IdentityProviderEndpoint,
-			cognitoidentity.ServiceID:         awsCognitoEndpoints.IdentityEndpoint,
+			cognitoidentityprovider.ServiceID: endpoints.IdentityProviderEndpoint,
+			cognitoidentity.ServiceID:         endpoints.IdentityEndpoint,
 		}
 		endpointResolver := aws.EndpointResolverWithOptionsFunc(func(service string, region string, options ...interface{}) (aws.Endpoint, error) {
 			if endpoint := endpointMap[service]; endpoint != "" {
@@ -53,17 +61,14 @@ func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string,
 		loadOptions = append(loadOptions, config.WithEndpointResolverWithOptions(endpointResolver))
 
 	}
+
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		loadOptions...,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &authenticationService{
-		client:    client,
-		BaseUrl:   baseUrl,
-		awsConfig: cfg,
-	}
+	return cfg
 }
 
 type authenticationService struct {
