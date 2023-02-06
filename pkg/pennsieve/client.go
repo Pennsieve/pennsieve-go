@@ -56,7 +56,7 @@ type Client struct {
 }
 
 // NewClient creates a new Pennsieve HTTP client.
-func NewClient(params APIParams) *Client {
+func NewClient(params APIParams, awsCognitoEndpoints *AWSCognitoEndpoints) *Client {
 
 	c := &Client{
 		APISession:         APISession{},
@@ -66,7 +66,7 @@ func NewClient(params APIParams) *Client {
 		OrganizationId:     0,
 	}
 
-	c.Authentication = NewAuthenticationService(c, params.ApiHost)
+	c.Authentication = NewAuthenticationService(c, params.ApiHost, awsCognitoEndpoints)
 	c.Organization = NewOrganizationService(c, params.ApiHost)
 	c.User = NewUserService(c, params.ApiHost)
 	c.Dataset = NewDatasetService(c, params.ApiHost)

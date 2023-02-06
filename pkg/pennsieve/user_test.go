@@ -2,25 +2,56 @@ package pennsieve
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"encoding/json"
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/user"
+	"github.com/stretchr/testify/suite"
+	"net/http"
 	"testing"
 )
 
-// Testing very basic component of UserService to get active user.
-// We mock the HTTP-client to return a user.
-func TestGetUser(t *testing.T) {
+type UserServiceTestSuite struct {
+	suite.Suite
+	MockCognitoServer
+	MockPennsieveServer
+	TestService UserService
+}
 
-	ht := mockHTTPClient{
-		APISession:         APISession{},
-		APICredentials:     APICredentials{},
-		OrganizationNodeId: "",
-		OrganizationId:     0,
+func (s *UserServiceTestSuite) SetupTest() {
+	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
+	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	client := NewClient(APIParams{
+		ApiHost: s.Server.URL,
+	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+	s.TestService = client.User
+}
+
+func (s *UserServiceTestSuite) TearDownTest() {
+	s.MockCognitoServer.Close()
+	s.MockPennsieveServer.Close()
+}
+
+// Testing very basic component of UserService to get active user.
+func (s *UserServiceTestSuite) TestGetUser() {
+	expectedUserId := "1234"
+	s.Mux.HandleFunc("/user/", func(writer http.ResponseWriter, request *http.Request) {
+		s.Equal("GET", request.Method, "unexpected http method called for GetUser")
+		respUser := user.User{
+			ID: expectedUserId,
+		}
+		respBody, err := json.Marshal(respUser)
+		if s.NoError(err) {
+			_, err = writer.Write(respBody)
+			s.NoError(err)
+		}
+	})
+
+	userResp, err := s.TestService.GetUser(context.Background())
+	if s.NoError(err) {
+		s.Equal(expectedUserId, userResp.ID, "UserID must match.")
 	}
 
-	testUserService := NewUserService(&ht, "http://test.com")
+}
 
-	user, _ := testUserService.GetUser(context.Background())
-
-	assert.Equal(t, "1234", user.ID, "UserID must match.")
-
+func TestUserServiceSuite(t *testing.T) {
+	suite.Run(t, new(UserServiceTestSuite))
 }
