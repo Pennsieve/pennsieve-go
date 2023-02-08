@@ -21,14 +21,15 @@ type ClientTestSuite struct {
 func (s *ClientTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	s.TestClient = NewClient(
-		APIParams{ApiHost: s.Server.URL},
-		&AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+		APIParams{ApiHost: s.Server.URL})
 }
 
 func (s *ClientTestSuite) TearDownTest() {
 	s.MockCognitoServer.Close()
 	s.MockPennsieveServer.Close()
+	AWSEndpoints.Reset()
 }
 
 type requestBody struct {

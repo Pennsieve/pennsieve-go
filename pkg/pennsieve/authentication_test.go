@@ -49,15 +49,16 @@ func (s *AuthenticationServiceTestSuite) SetupTest() {
 		Mux:    cognitoMux,
 	}
 	s.MockPennsieveServer = NewMockPennsieveServer(s.T(), expectedCognitoConfig)
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.MockCognito.Server.URL}
 	s.TestClient = NewClient(
-		APIParams{ApiHost: s.Server.URL},
-		&AWSCognitoEndpoints{IdentityProviderEndpoint: s.MockCognito.Server.URL})
+		APIParams{ApiHost: s.Server.URL})
 	s.TestService = s.TestClient.Authentication
 }
 
 func (s *AuthenticationServiceTestSuite) TearDownTest() {
 	s.MockCognito.Close()
 	s.MockPennsieveServer.Close()
+	AWSEndpoints.Reset()
 }
 
 func (s *AuthenticationServiceTestSuite) TestGetCognitoConfig() {
@@ -124,7 +125,7 @@ func TestAuthenticationServiceSuite(t *testing.T) {
 // endpoint resolver for AWS
 func TestProdEndpointResolver(t *testing.T) {
 	client := noOpPennsieveClient{}
-	service := NewAuthenticationService(client, "https://example.com", nil)
+	service := NewAuthenticationService(client, "https://example.com")
 	//goland:noinspection GoDeprecation
 	assert.Nil(t, (*service).awsConfig.EndpointResolver)
 	assert.Nil(t, (*service).awsConfig.EndpointResolverWithOptions)

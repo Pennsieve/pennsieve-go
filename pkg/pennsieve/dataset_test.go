@@ -20,15 +20,17 @@ type DatasetServiceTestSuite struct {
 func (s *DatasetServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	client := NewClient(APIParams{
 		ApiHost: s.Server.URL,
-	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+	})
 	s.TestService = client.Dataset
 }
 
 func (s *DatasetServiceTestSuite) TearDownTest() {
 	s.MockPennsieveServer.Close()
 	s.MockCognitoServer.Close()
+	AWSEndpoints.Reset()
 }
 
 func (s *DatasetServiceTestSuite) TestGetDataset() {

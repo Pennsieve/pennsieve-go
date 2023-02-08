@@ -19,15 +19,17 @@ type UserServiceTestSuite struct {
 func (s *UserServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	client := NewClient(APIParams{
 		ApiHost: s.Server.URL,
-	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+	})
 	s.TestService = client.User
 }
 
 func (s *UserServiceTestSuite) TearDownTest() {
 	s.MockCognitoServer.Close()
 	s.MockPennsieveServer.Close()
+	AWSEndpoints.Reset()
 }
 
 // Testing very basic component of UserService to get active user.

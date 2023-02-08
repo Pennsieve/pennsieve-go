@@ -22,10 +22,11 @@ func (s *ManifestServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.APIServer = NewMockPennsieveServerDefault(s.T())
 	s.API2Server = NewMockPennsieveServerDefault(s.T())
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	client := NewClient(APIParams{
 		ApiHost:  s.APIServer.Server.URL,
 		ApiHost2: s.API2Server.Server.URL,
-	}, &AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+	})
 	s.TestService = client.Manifest
 }
 
@@ -33,6 +34,7 @@ func (s *ManifestServiceTestSuite) TearDownTest() {
 	s.MockCognitoServer.Close()
 	s.APIServer.Close()
 	s.API2Server.Close()
+	AWSEndpoints.Reset()
 }
 
 func (s *ManifestServiceTestSuite) TestCreateManifest() {
