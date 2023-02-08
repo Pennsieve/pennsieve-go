@@ -18,6 +18,28 @@ import (
 	"time"
 )
 
+// AWSEndpoints can be used to set custom endpoints for Cognito.
+// The default value will provide the default endpoints.
+// Modifications only affect subsequent calls to NewAuthenticationService and
+// not any already existing instances of authenticationService.
+var AWSEndpoints = AWSCognitoEndpoints{}
+
+type AWSCognitoEndpoints struct {
+	IdentityProviderEndpoint string
+	IdentityEndpoint         string
+}
+
+// Reset resets the endpoints to the default values.
+func (e *AWSCognitoEndpoints) Reset() {
+	e.IdentityEndpoint = ""
+	e.IdentityProviderEndpoint = ""
+}
+
+// IsEmpty returns true if no custom endpoints have been set.
+func (e *AWSCognitoEndpoints) IsEmpty() bool {
+	return e.IdentityProviderEndpoint == "" && e.IdentityEndpoint == ""
+}
+
 type AuthenticationService interface {
 	getCognitoConfig() (*authentication.CognitoConfig, error)
 	ReAuthenticate() (*APISession, error)
@@ -27,13 +49,8 @@ type AuthenticationService interface {
 	SetClient(client *Client)
 }
 
-type AWSCognitoEndpoints struct {
-	IdentityProviderEndpoint string
-	IdentityEndpoint         string
-}
-
-func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string, awsCognitoEndpoints *AWSCognitoEndpoints) *authenticationService {
-	cfg := newAwsConfig(awsCognitoEndpoints)
+func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string) *authenticationService {
+	cfg := newAwsConfig()
 	return &authenticationService{
 		client:    client,
 		BaseUrl:   baseUrl,
@@ -41,13 +58,13 @@ func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string, awsCog
 	}
 }
 
-func newAwsConfig(endpoints *AWSCognitoEndpoints) aws.Config {
+func newAwsConfig() aws.Config {
 	loadOptions := []func(*config.LoadOptions) error{config.WithRegion("us-east-1")}
 
-	if endpoints != nil {
+	if !AWSEndpoints.IsEmpty() {
 		endpointMap := map[string]string{
-			cognitoidentityprovider.ServiceID: endpoints.IdentityProviderEndpoint,
-			cognitoidentity.ServiceID:         endpoints.IdentityEndpoint,
+			cognitoidentityprovider.ServiceID: AWSEndpoints.IdentityProviderEndpoint,
+			cognitoidentity.ServiceID:         AWSEndpoints.IdentityEndpoint,
 		}
 		endpointResolver := aws.EndpointResolverWithOptionsFunc(func(service string, region string, options ...interface{}) (aws.Endpoint, error) {
 			if endpoint := endpointMap[service]; endpoint != "" {

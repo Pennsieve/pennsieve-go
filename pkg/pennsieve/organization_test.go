@@ -19,15 +19,16 @@ type OrganizationServiceTestSuite struct {
 func (s *OrganizationServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
 	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	client := NewClient(
-		APIParams{ApiHost: s.Server.URL},
-		&AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL})
+		APIParams{ApiHost: s.Server.URL})
 	s.TestService = client.Organization
 }
 
 func (s *OrganizationServiceTestSuite) TearDownTest() {
 	s.MockCognitoServer.Close()
 	s.MockPennsieveServer.Close()
+	AWSEndpoints.Reset()
 }
 
 // Testing very basic component of UserService to get active user.
