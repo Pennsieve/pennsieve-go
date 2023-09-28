@@ -95,50 +95,6 @@ func (s *DatasetServiceTestSuite) TestCreateDataset() {
 	}
 }
 
-func (s *DatasetServiceTestSuite) TestGetDatasetByVersion() {
-	expectedDatasetId := int32(5069)
-	expectedVersionId := int32(2)
-	expectedPath := fmt.Sprintf("/discover/datasets/%v/versions/%v", expectedDatasetId, expectedVersionId)
-	s.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
-		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
-		datasetByVersionResponse := dataset.GetDatasetByVersionResponse{
-			ID: expectedDatasetId, Version: expectedVersionId, Uri: "s3://pennsieve-dev-discover-publish50-use1/5069/"}
-		body, err := json.Marshal(datasetByVersionResponse)
-		if s.NoError(err) {
-			_, err := writer.Write(body)
-			s.NoError(err)
-		}
-	})
-
-	getDatasetResp, err := s.TestService.GetDatasetByVersion(
-		context.Background(), expectedDatasetId, expectedVersionId)
-	if s.NoError(err) {
-		s.Equal(expectedDatasetId, getDatasetResp.ID, "unexpected ID")
-	}
-}
-
-func (s *DatasetServiceTestSuite) TestGetDatasetMetadataByVersion() {
-	expectedDatasetId := int32(5069)
-	expectedVersionId := int32(2)
-	expectedPath := fmt.Sprintf("/discover/datasets/%v/versions/%v/metadata", expectedDatasetId, expectedVersionId)
-	s.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
-		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
-		datasetByVersionResponse := dataset.GetDatasetMetadataByVersionResponse{
-			ID: expectedDatasetId, Version: expectedVersionId, Files: []dataset.DatasetFile{{Name: "test.txt"}}}
-		body, err := json.Marshal(datasetByVersionResponse)
-		if s.NoError(err) {
-			_, err := writer.Write(body)
-			s.NoError(err)
-		}
-	})
-
-	getDatasetResp, err := s.TestService.GetDatasetMetadataByVersion(
-		context.Background(), expectedDatasetId, expectedVersionId)
-	if s.NoError(err) {
-		s.Equal(expectedDatasetId, getDatasetResp.ID, "unexpected ID")
-	}
-}
-
 func TestDatasetServiceSuite(t *testing.T) {
 	suite.Run(t, new(DatasetServiceTestSuite))
 }

@@ -18,8 +18,6 @@ type DatasetService interface {
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
 	Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error)
-	GetDatasetByVersion(ctx context.Context, datasetId int32, versionId int32) (*dataset.GetDatasetByVersionResponse, error)
-	GetDatasetMetadataByVersion(ctx context.Context, datasetId int32, versionId int32) (*dataset.GetDatasetMetadataByVersionResponse, error)
 }
 
 type datasetService struct {
@@ -143,48 +141,4 @@ func (d *datasetService) Create(ctx context.Context, name, description, tags str
 
 	return &res, nil
 
-}
-
-// GetDatasetByVersion returns a dataset by version.
-func (d *datasetService) GetDatasetByVersion(ctx context.Context, datasetId int32, versionId int32) (*dataset.GetDatasetByVersionResponse, error) {
-	endpoint := fmt.Sprintf("%s/discover/datasets/%v/versions/%v",
-		d.BaseUrl, datasetId, versionId)
-	req, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if ctx == nil {
-		ctx = req.Context()
-	}
-
-	res := dataset.GetDatasetByVersionResponse{}
-	if err := d.Client.sendUnauthenticatedRequest(ctx, req, &res); err != nil {
-		log.Println("DatasetService: SendRequest Error in GetDatasetByVersion: ", err)
-		return nil, err
-	}
-
-	return &res, nil
-}
-
-// GetDatasetMetadataByVersion returns dataset metadata by version.
-func (d *datasetService) GetDatasetMetadataByVersion(ctx context.Context, datasetId int32, versionId int32) (*dataset.GetDatasetMetadataByVersionResponse, error) {
-	endpoint := fmt.Sprintf("%s/discover/datasets/%v/versions/%v/metadata",
-		d.BaseUrl, datasetId, versionId)
-	req, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if ctx == nil {
-		ctx = req.Context()
-	}
-
-	res := dataset.GetDatasetMetadataByVersionResponse{}
-	if err := d.Client.sendUnauthenticatedRequest(ctx, req, &res); err != nil {
-		log.Println("DatasetService: SendRequest Error in GetDatasetMetadataByVersion: ", err)
-		return nil, err
-	}
-
-	return &res, nil
 }
