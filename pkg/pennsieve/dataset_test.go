@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"testing"
+
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
+	"github.com/stretchr/testify/suite"
 )
 
 type DatasetServiceTestSuite struct {

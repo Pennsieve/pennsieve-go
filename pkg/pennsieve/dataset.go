@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/dataset"
 )
 
 type DatasetService interface {
