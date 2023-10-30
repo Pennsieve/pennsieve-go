@@ -78,6 +78,30 @@ func (s *DiscoverServiceTestSuite) TestGetDatasetMetadataByVersion() {
 	}
 }
 
+func (s *DiscoverServiceTestSuite) TestGetDatasetFileByVersion() {
+	datasetId := int32(5069)
+	versionId := int32(2)
+	expectedFilename := "manifest.json"
+	expectedPath := fmt.Sprintf("/discover/datasets/%v/versions/%v/files",
+		datasetId, versionId)
+	s.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
+		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
+		datasetFileByVersionResponse := discover.GetDatasetFileByVersionResponse{
+			Name: expectedFilename, Uri: "s3://pennsieve-dev-discover-publish50-use1/5069/manifest.json"}
+		body, err := json.Marshal(datasetFileByVersionResponse)
+		if s.NoError(err) {
+			_, err := writer.Write(body)
+			s.NoError(err)
+		}
+	})
+
+	getDatasetResp, err := s.TestService.GetDatasetFileByVersion(
+		context.Background(), datasetId, versionId, expectedFilename)
+	if s.NoError(err) {
+		s.Equal(expectedFilename, getDatasetResp.Name, "unexpected Name")
+	}
+}
+
 func TestDiscoverServiceSuite(t *testing.T) {
 	suite.Run(t, new(DiscoverServiceTestSuite))
 }

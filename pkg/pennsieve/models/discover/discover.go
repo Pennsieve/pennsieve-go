@@ -21,3 +21,12 @@ type DatasetFile struct {
 	FileType    string `json:"fileType"`
 	S3VersionID string `json:"s3VersionId"`
 }
+
+type GetDatasetFileByVersionResponse struct {
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	Size        int64  `json:"size"`
+	FileType    string `json:"fileType"`
+	Uri         string `json:"uri"`
+	S3VersionID string `json:"s3Version"`
+}
