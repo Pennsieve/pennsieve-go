@@ -79,11 +79,11 @@ func (s *DiscoverServiceTestSuite) TestGetDatasetMetadataByVersion() {
 }
 
 func (s *DiscoverServiceTestSuite) TestGetDatasetFileByVersion() {
-	expectedDatasetId := int32(5069)
-	expectedVersionId := int32(2)
+	datasetId := int32(5069)
+	versionId := int32(2)
 	expectedFilename := "manifest.json"
 	expectedPath := fmt.Sprintf("/discover/datasets/%v/versions/%v/files",
-		expectedDatasetId, expectedVersionId)
+		datasetId, versionId)
 	s.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
 		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
 		datasetFileByVersionResponse := discover.GetDatasetFileByVersionResponse{
@@ -96,7 +96,7 @@ func (s *DiscoverServiceTestSuite) TestGetDatasetFileByVersion() {
 	})
 
 	getDatasetResp, err := s.TestService.GetDatasetFileByVersion(
-		context.Background(), expectedDatasetId, expectedVersionId, expectedFilename)
+		context.Background(), datasetId, versionId, expectedFilename)
 	if s.NoError(err) {
 		s.Equal(expectedFilename, getDatasetResp.Name, "unexpected Name")
 	}
