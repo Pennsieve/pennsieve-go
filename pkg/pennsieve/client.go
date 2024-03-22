@@ -54,6 +54,7 @@ type Client struct {
 	Dataset        DatasetService
 	Manifest       ManifestService
 	Discover       DiscoverService
+	Account        AccountService
 }
 
 // NewClient creates a new Pennsieve HTTP client.
@@ -72,6 +73,7 @@ func NewClient(params APIParams) *Client {
 	c.User = NewUserService(c, params.ApiHost)
 	c.Dataset = NewDatasetService(c, params.ApiHost)
 	c.Discover = NewDiscoverService(c, params.ApiHost)
+	c.Account = NewAccountService(c, params.ApiHost)
 
 	c.Authentication.getCognitoConfig()
 
