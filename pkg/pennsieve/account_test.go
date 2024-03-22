@@ -33,10 +33,7 @@ func (s *AccountServiceTestSuite) TearDownTest() {
 	AWSEndpoints.Reset()
 }
 
-func (s *AccountServiceTestSuite) TestGetDatasetByVersion() {
-}
-
-func (s *AccountServiceTestSuite) TestGetDataset() {
+func (s *AccountServiceTestSuite) TestGetPennsieveAccounts() {
 	expectedAccountId := "12345"
 	expectedAccountType := "aws"
 	expectedPath := "/pennsieve-accounts/" + expectedAccountType
