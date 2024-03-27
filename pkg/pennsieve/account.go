@@ -39,7 +39,6 @@ func (a *accountService) GetPennsieveAccounts(ctx context.Context, accountType s
 
 	res := account.GetPennsieveAccountsResponse{}
 	if err := a.Client.sendRequest(ctx, req, &res); err != nil {
-
 		log.Println("AccountService: SendRequest Error in Get: ", err)
 		return nil, err
 	}
@@ -69,11 +68,7 @@ func (a *accountService) CreateAccount(ctx context.Context, accountId string, ac
 
 	res := account.CreateAccountResponse{}
 	if err := a.Client.sendRequest(ctx, req, &res); err != nil {
-		fmt.Println("sendRequest Error: ", err)
-		return nil, err
-	}
-
-	if err != nil {
+		log.Println("sendRequest Error: ", err)
 		return nil, err
 	}
 
