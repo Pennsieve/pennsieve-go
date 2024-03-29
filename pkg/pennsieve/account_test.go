@@ -13,23 +13,23 @@ import (
 
 type AccountServiceTestSuite struct {
 	suite.Suite
-	MockPennsieveServer
+	API2Server MockPennsieveServer
 	MockCognitoServer
 	TestService AccountService
 }
 
 func (s *AccountServiceTestSuite) SetupTest() {
 	s.MockCognitoServer = NewMockCognitoServerDefault(s.T())
-	s.MockPennsieveServer = NewMockPennsieveServerDefault(s.T())
+	s.API2Server = NewMockPennsieveServerDefault(s.T())
 	AWSEndpoints = AWSCognitoEndpoints{IdentityProviderEndpoint: s.IdProviderServer.URL}
 	client := NewClient(APIParams{
-		ApiHost: s.Server.URL,
+		ApiHost2: s.API2Server.Server.URL,
 	})
 	s.TestService = client.Account
 }
 
 func (s *AccountServiceTestSuite) TearDownTest() {
-	s.MockPennsieveServer.Close()
+	s.API2Server.Close()
 	s.MockCognitoServer.Close()
 	AWSEndpoints.Reset()
 }
@@ -38,7 +38,7 @@ func (s *AccountServiceTestSuite) TestGetPennsieveAccounts() {
 	expectedAccountId := "12345"
 	expectedAccountType := "aws"
 	expectedPath := "/pennsieve-accounts/" + expectedAccountType
-	s.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
+	s.API2Server.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
 		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
 		pennsieveAccountsResponse := account.GetPennsieveAccountsResponse{AccountId: expectedAccountId, AccountType: expectedAccountType}
 		body, err := json.Marshal(pennsieveAccountsResponse)
@@ -61,7 +61,7 @@ func (s *AccountServiceTestSuite) TestCreateAccount() {
 	expectedExternalId := "SomeExternalId"
 	expectedUuid := "SomeRandomID"
 
-	s.Mux.HandleFunc("/accounts", func(writer http.ResponseWriter, request *http.Request) {
+	s.API2Server.Mux.HandleFunc("/accounts", func(writer http.ResponseWriter, request *http.Request) {
 		s.Equalf("POST", request.Method, "expected method POST, got: %q", request.Method)
 		requestBody := struct {
 			AccountId   string `json:"accountId"`
