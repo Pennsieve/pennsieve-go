@@ -73,7 +73,7 @@ func NewClient(params APIParams) *Client {
 	c.User = NewUserService(c, params.ApiHost)
 	c.Dataset = NewDatasetService(c, params.ApiHost)
 	c.Discover = NewDiscoverService(c, params.ApiHost)
-	c.Account = NewAccountService(c, params.ApiHost)
+	c.Account = NewAccountService(c, params.ApiHost2)
 
 	c.Authentication.getCognitoConfig()
 
