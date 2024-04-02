@@ -73,6 +73,7 @@ func NewClient(params APIParams) *Client {
 	c.User = NewUserService(c, params.ApiHost)
 	c.Dataset = NewDatasetService(c, params.ApiHost)
 	c.Discover = NewDiscoverService(c, params.ApiHost)
+	c.Manifest = NewManifestService(c, params.ApiHost2)
 	c.Account = NewAccountService(c, params.ApiHost2)
 
 	c.Authentication.getCognitoConfig()
@@ -190,5 +191,6 @@ func (c *Client) Updateparams(params APIParams) {
 	c.User.SetBaseUrl(params.ApiHost)
 	c.Dataset.SetBaseUrl(params.ApiHost)
 	c.Manifest.SetBaseUrl(params.ApiHost2)
+	c.Account.SetBaseUrl(params.ApiHost2)
 
 }

@@ -13,6 +13,7 @@ import (
 type AccountService interface {
 	GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error)
 	CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error)
+	SetBaseUrl(url string)
 }
 
 type accountService struct {
@@ -73,4 +74,8 @@ func (a *accountService) CreateAccount(ctx context.Context, accountId string, ac
 	}
 
 	return &res, nil
+}
+
+func (s *accountService) SetBaseUrl(url string) {
+	s.BaseUrl = url
 }
