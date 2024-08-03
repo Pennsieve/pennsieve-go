@@ -55,6 +55,7 @@ type Client struct {
 	Manifest       ManifestService
 	Discover       DiscoverService
 	Account        AccountService
+	Package        PackageService
 }
 
 // NewClient creates a new Pennsieve HTTP client.
@@ -75,6 +76,7 @@ func NewClient(params APIParams) *Client {
 	c.Discover = NewDiscoverService(c, params.ApiHost)
 	c.Manifest = NewManifestService(c, params.ApiHost2)
 	c.Account = NewAccountService(c, params.ApiHost2)
+	c.Package = NewPackageService(c, params.ApiHost, params.ApiHost2)
 
 	c.Authentication.getCognitoConfig()
 
@@ -192,5 +194,6 @@ func (c *Client) Updateparams(params APIParams) {
 	c.Dataset.SetBaseUrl(params.ApiHost)
 	c.Manifest.SetBaseUrl(params.ApiHost2)
 	c.Account.SetBaseUrl(params.ApiHost2)
+	c.Package.SetBaseUrl(params.ApiHost, params.ApiHost2)
 
 }
