@@ -18,17 +18,20 @@ type DatasetService interface {
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
 	SetBaseUrl(url string)
 	Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error)
+	GetManifest(ctx context.Context, nodeId string) (*dataset.GetManifestResponse, error)
 }
 
 type datasetService struct {
-	Client  PennsieveHTTPClient
-	BaseUrl string
+	Client   PennsieveHTTPClient
+	BaseUrl  string
+	BaseUrl2 string
 }
 
-func NewDatasetService(client PennsieveHTTPClient, baseUrl string) *datasetService {
+func NewDatasetService(client PennsieveHTTPClient, baseUrl string, baseUrl2 string) *datasetService {
 	return &datasetService{
-		Client:  client,
-		BaseUrl: baseUrl,
+		Client:   client,
+		BaseUrl:  baseUrl,
+		BaseUrl2: baseUrl2,
 	}
 }
 
@@ -106,8 +109,32 @@ func (d *datasetService) List(ctx context.Context, limit int, offset int) (*data
 	return &res, nil
 }
 
-func (s *datasetService) SetBaseUrl(url string) {
-	s.BaseUrl = url
+func (d *datasetService) GetManifest(ctx context.Context, nodeId string) (*dataset.GetManifestResponse, error) {
+
+	params := url.Values{}
+	params.Add("dataset_id", nodeId)
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/datasets/manifest?%s", d.BaseUrl2, params.Encode()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if ctx == nil {
+		ctx = req.Context()
+	}
+
+	res := dataset.GetManifestResponse{}
+	if err := d.Client.sendRequest(ctx, req, &res); err != nil {
+
+		log.Println("DatasetService: SendRequest Error in GetManifest: ", err)
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+func (d *datasetService) SetBaseUrl(url string) {
+	d.BaseUrl = url
 }
 
 func (d *datasetService) Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error) {

@@ -72,7 +72,7 @@ func NewClient(params APIParams) *Client {
 	c.Authentication = NewAuthenticationService(c, params.ApiHost)
 	c.Organization = NewOrganizationService(c, params.ApiHost)
 	c.User = NewUserService(c, params.ApiHost)
-	c.Dataset = NewDatasetService(c, params.ApiHost)
+	c.Dataset = NewDatasetService(c, params.ApiHost, params.ApiHost2)
 	c.Discover = NewDiscoverService(c, params.ApiHost)
 	c.Manifest = NewManifestService(c, params.ApiHost2)
 	c.Account = NewAccountService(c, params.ApiHost2)
