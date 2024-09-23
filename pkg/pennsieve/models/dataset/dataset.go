@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+type GetManifestResponse struct {
+	URL      string `json:"url"`
+	S3Bucket string `json:"s3_bucket"`
+	S3Key    string `json:"s3_key"`
+}
+
 type GetDatasetResponse struct {
 	Content            Content            `json:"content"`
 	Organization       string             `json:"organization"`
