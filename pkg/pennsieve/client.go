@@ -56,6 +56,7 @@ type Client struct {
 	Discover       DiscoverService
 	Account        AccountService
 	Package        PackageService
+	Timeseries     TimeseriesService
 }
 
 // NewClient creates a new Pennsieve HTTP client.
@@ -77,6 +78,7 @@ func NewClient(params APIParams) *Client {
 	c.Manifest = NewManifestService(c, params.ApiHost2)
 	c.Account = NewAccountService(c, params.ApiHost2)
 	c.Package = NewPackageService(c, params.ApiHost, params.ApiHost2)
+	c.Timeseries = NewTimeseriesService(c, params.ApiHost2)
 
 	c.Authentication.getCognitoConfig()
 
