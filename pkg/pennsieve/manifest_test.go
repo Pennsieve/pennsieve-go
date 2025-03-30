@@ -3,8 +3,8 @@ package pennsieve
 import (
 	"context"
 	"encoding/json"
-	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest"
-	"github.com/pennsieve/pennsieve-go-api/pkg/models/manifest/manifestFile"
+	"github.com/pennsieve/pennsieve-go-core/pkg/models/manifest"
+	"github.com/pennsieve/pennsieve-go-core/pkg/models/manifest/manifestFile"
 	"github.com/stretchr/testify/suite"
 	"net/http"
 	"testing"

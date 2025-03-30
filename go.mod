@@ -1,6 +1,6 @@
 module github.com/pennsieve/pennsieve-go
 
-go 1.18
+go 1.23
 
 //replace github.com/pennsieve/pennsieve-go-api => ../pennsieve-go-api
 
@@ -10,9 +10,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.14.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.20.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/pennsieve/pennsieve-go-api v1.1.0
-	github.com/pennsieve/pennsieve-go-core v1.11.0
-	github.com/stretchr/testify v1.8.1
+	github.com/pennsieve/pennsieve-go-core v1.13.3
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
@@ -27,8 +26,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.4 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/lib/pq v1.10.7 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
