@@ -29,7 +29,7 @@ func NewAccountService(client PennsieveHTTPClient, baseUrl string) *accountServi
 }
 
 func (a *accountService) GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error) {
-    req, err := http.NewRequest("GET", fmt.Sprintf("%s/accounts/pennsieve-accounts/%s", a.BaseUrl, accountType), nil)
+    req, err := http.NewRequest("GET", fmt.Sprintf("%s/compute/resources/pennsieve-accounts/%s", a.BaseUrl, accountType), nil)
     if err != nil {
         return nil, err
     }
@@ -58,7 +58,7 @@ func (a *accountService) CreateAccount(ctx context.Context, accountId string, ac
 
     postParamsPayload := bytes.NewReader([]byte(postParams))
 
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s/accounts/compute-resource", a.BaseUrl), postParamsPayload)
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/compute/resources/accounts", a.BaseUrl), postParamsPayload)
     if err != nil {
         return nil, err
     }
