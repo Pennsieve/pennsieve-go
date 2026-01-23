@@ -37,7 +37,7 @@ func (s *AccountServiceTestSuite) TearDownTest() {
 func (s *AccountServiceTestSuite) TestGetPennsieveAccounts() {
 	expectedAccountId := "12345"
 	expectedAccountType := "aws"
-	expectedPath := "/pennsieve-accounts/" + expectedAccountType
+	expectedPath := "/accounts/pennsieve-accounts/" + expectedAccountType
 	s.API2Server.Mux.HandleFunc(expectedPath, func(writer http.ResponseWriter, request *http.Request) {
 		s.Equalf("GET", request.Method, "expected method GET, got: %q", request.Method)
 		pennsieveAccountsResponse := account.GetPennsieveAccountsResponse{AccountId: expectedAccountId, AccountType: expectedAccountType}
@@ -61,7 +61,7 @@ func (s *AccountServiceTestSuite) TestCreateAccount() {
 	expectedExternalId := "SomeExternalId"
 	expectedUuid := "SomeRandomID"
 
-	s.API2Server.Mux.HandleFunc("/accounts", func(writer http.ResponseWriter, request *http.Request) {
+	s.API2Server.Mux.HandleFunc("/accounts/compute-resource", func(writer http.ResponseWriter, request *http.Request) {
 		s.Equalf("POST", request.Method, "expected method POST, got: %q", request.Method)
 		requestBody := struct {
 			AccountId   string `json:"accountId"`
