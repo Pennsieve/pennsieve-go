@@ -1,54 +1,54 @@
 package pennsieve
 
 import (
-	"bytes"
-	"context"
-	"fmt"
-	"log"
-	"net/http"
+    "bytes"
+    "context"
+    "fmt"
+    "log"
+    "net/http"
 
-	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/account"
+    "github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/account"
 )
 
 type AccountService interface {
-	GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error)
-	CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error)
-	SetBaseUrl(url string)
+    GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error)
+    CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error)
+    SetBaseUrl(url string)
 }
 
 type accountService struct {
-	Client  PennsieveHTTPClient
-	BaseUrl string
+    Client  PennsieveHTTPClient
+    BaseUrl string
 }
 
 func NewAccountService(client PennsieveHTTPClient, baseUrl string) *accountService {
-	return &accountService{
-		Client:  client,
-		BaseUrl: baseUrl,
-	}
+    return &accountService{
+        Client:  client,
+        BaseUrl: baseUrl,
+    }
 }
 
 func (a *accountService) GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/pennsieve-accounts/%s", a.BaseUrl, accountType), nil)
-	if err != nil {
-		return nil, err
-	}
+    req, err := http.NewRequest("GET", fmt.Sprintf("%s/accounts/pennsieve-accounts/%s", a.BaseUrl, accountType), nil)
+    if err != nil {
+        return nil, err
+    }
 
-	if ctx == nil {
-		ctx = req.Context()
-	}
+    if ctx == nil {
+        ctx = req.Context()
+    }
 
-	res := account.GetPennsieveAccountsResponse{}
-	if err := a.Client.sendRequest(ctx, req, &res); err != nil {
-		log.Println("AccountService: SendRequest Error in Get: ", err)
-		return nil, err
-	}
+    res := account.GetPennsieveAccountsResponse{}
+    if err := a.Client.sendRequest(ctx, req, &res); err != nil {
+        log.Println("AccountService: SendRequest Error in Get: ", err)
+        return nil, err
+    }
 
-	return &res, nil
+    return &res, nil
 }
 
 func (a *accountService) CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error) {
-	postParams := fmt.Sprintf(`
+    postParams := fmt.Sprintf(`
 		{
 			"accountId": "%s",
 			"accountType": "%s",
@@ -56,26 +56,26 @@ func (a *accountService) CreateAccount(ctx context.Context, accountId string, ac
 			"externalId": "%s"
 		}`, accountId, accountType, roleName, externalId)
 
-	postParamsPayload := bytes.NewReader([]byte(postParams))
+    postParamsPayload := bytes.NewReader([]byte(postParams))
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/accounts", a.BaseUrl), postParamsPayload)
-	if err != nil {
-		return nil, err
-	}
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/accounts/compute-resource", a.BaseUrl), postParamsPayload)
+    if err != nil {
+        return nil, err
+    }
 
-	if ctx == nil {
-		ctx = req.Context()
-	}
+    if ctx == nil {
+        ctx = req.Context()
+    }
 
-	res := account.CreateAccountResponse{}
-	if err := a.Client.sendRequest(ctx, req, &res); err != nil {
-		log.Println("sendRequest Error: ", err)
-		return nil, err
-	}
+    res := account.CreateAccountResponse{}
+    if err := a.Client.sendRequest(ctx, req, &res); err != nil {
+        log.Println("sendRequest Error: ", err)
+        return nil, err
+    }
 
-	return &res, nil
+    return &res, nil
 }
 
 func (s *accountService) SetBaseUrl(url string) {
-	s.BaseUrl = url
+    s.BaseUrl = url
 }
