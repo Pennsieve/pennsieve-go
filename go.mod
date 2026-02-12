@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.14.0
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.20.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/pennsieve/pennsieve-go-core v1.13.3
+	github.com/pennsieve/pennsieve-go-core v1.13.7
 	github.com/stretchr/testify v1.10.0
 )
 
