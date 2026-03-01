@@ -9,6 +9,7 @@ import (
 
 type UserService interface {
 	GetUser(ctx context.Context) (*user.User, error)
+	SwitchOrganization(ctx context.Context, organizationId string) error
 	SetBaseUrl(url string)
 }
 
@@ -40,6 +41,25 @@ func (s *userService) GetUser(ctx context.Context) (*user.User, error) {
 	}
 
 	return &res, nil
+}
+
+// SwitchOrganization switches the user's active organization server-side.
+func (s *userService) SwitchOrganization(ctx context.Context, organizationId string) error {
+	req, err := http.NewRequest("PUT",
+		fmt.Sprintf("%s/session/switch-organization?organization_id=%s", s.BaseUrl, organizationId), nil)
+	if err != nil {
+		return err
+	}
+
+	if ctx == nil {
+		ctx = req.Context()
+	}
+
+	if err := s.client.sendRequest(ctx, req, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *userService) SetBaseUrl(url string) {

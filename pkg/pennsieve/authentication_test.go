@@ -145,6 +145,10 @@ func (noOpPennsieveClient) GetAPIParams() *APIParams {
 	panic("implement me")
 }
 
+func (noOpPennsieveClient) GetSession() APISession {
+	panic("implement me")
+}
+
 func (noOpPennsieveClient) SetSession(s APISession) {
 	panic("implement me")
 }

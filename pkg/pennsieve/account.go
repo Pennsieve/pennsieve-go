@@ -13,6 +13,8 @@ import (
 type AccountService interface {
     GetPennsieveAccounts(ctx context.Context, accountType string) (*account.GetPennsieveAccountsResponse, error)
     CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error)
+    GetAccounts(ctx context.Context) ([]account.AccountResponse, error)
+    DeleteAccount(ctx context.Context, uuid string, force bool) (*account.DeleteAccountResponse, error)
     SetBaseUrl(url string)
 }
 
@@ -70,6 +72,48 @@ func (a *accountService) CreateAccount(ctx context.Context, accountId string, ac
     res := account.CreateAccountResponse{}
     if err := a.Client.sendRequest(ctx, req, &res); err != nil {
         log.Println("sendRequest Error: ", err)
+        return nil, err
+    }
+
+    return &res, nil
+}
+
+func (a *accountService) GetAccounts(ctx context.Context) ([]account.AccountResponse, error) {
+    req, err := http.NewRequest("GET", fmt.Sprintf("%s/compute/resources/accounts", a.BaseUrl), nil)
+    if err != nil {
+        return nil, err
+    }
+
+    if ctx == nil {
+        ctx = req.Context()
+    }
+
+    var res []account.AccountResponse
+    if err := a.Client.sendRequest(ctx, req, &res); err != nil {
+        log.Println("AccountService: SendRequest Error in GetAccounts: ", err)
+        return nil, err
+    }
+
+    return res, nil
+}
+
+func (a *accountService) DeleteAccount(ctx context.Context, uuid string, force bool) (*account.DeleteAccountResponse, error) {
+    url := fmt.Sprintf("%s/compute/resources/accounts/%s", a.BaseUrl, uuid)
+    if force {
+        url += "?force=true"
+    }
+
+    req, err := http.NewRequest("DELETE", url, nil)
+    if err != nil {
+        return nil, err
+    }
+
+    if ctx == nil {
+        ctx = req.Context()
+    }
+
+    res := account.DeleteAccountResponse{}
+    if err := a.Client.sendRequest(ctx, req, &res); err != nil {
         return nil, err
     }
 

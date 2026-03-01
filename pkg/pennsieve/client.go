@@ -89,6 +89,7 @@ type PennsieveHTTPClient interface {
 	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
 	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
 	GetAPIParams() *APIParams
+	GetSession() APISession
 	SetSession(s APISession)
 	SetOrganization(orgId int, orgNodeId string)
 	Updateparams(params APIParams)
@@ -133,9 +134,14 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
 		log.Println("Refreshing token")
 
-		// We are using reAuthenticate instead of refresh pathway as eventually, the refresh-token
-		// also expires and there is no real reason why we don't just re-authenticate.`
-		_, err := c.Authentication.Authenticate(c.aPIParams.ApiKey, c.aPIParams.ApiSecret)
+		var err error
+		if c.APISession.RefreshToken != "" && c.aPIParams.ApiKey == "" {
+			// Session token mode: re-authenticate using refresh token
+			_, err = c.Authentication.AuthenticateWithRefreshToken(c.APISession.RefreshToken)
+		} else {
+			// API key/secret mode: re-authenticate using credentials
+			_, err = c.Authentication.Authenticate(c.aPIParams.ApiKey, c.aPIParams.ApiSecret)
+		}
 
 		if err != nil {
 			log.Println("Error authenticating:", err)
@@ -167,8 +173,10 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 		return fmt.Errorf("unknown error, status code: %d", res.StatusCode)
 	}
 
-	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
-		return err
+	if v != nil {
+		if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -176,6 +184,10 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 
 func (c *Client) SetSession(s APISession) {
 	c.APISession = s
+}
+
+func (c *Client) GetSession() APISession {
+	return c.APISession
 }
 
 func (c *Client) GetAPIParams() *APIParams {

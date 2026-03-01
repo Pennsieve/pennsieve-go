@@ -44,6 +44,7 @@ type AuthenticationService interface {
 	getCognitoConfig() (*authentication.CognitoConfig, error)
 	ReAuthenticate() (*APISession, error)
 	Authenticate(apiKey string, apiSecret string) (*APISession, error)
+	AuthenticateWithRefreshToken(refreshToken string) (*APISession, error)
 	GetAWSCredsForUser() *IdentityTypes.Credentials
 	SetBaseUrl(url string)
 	SetClient(client *Client)
@@ -252,13 +253,75 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 	return &creds, nil
 }
 
+// AuthenticateWithRefreshToken authenticates using a Cognito refresh token instead of API key/secret.
+// This enables authentication when only session tokens are available (e.g. from an analytics workflow).
+// The REFRESH_TOKEN flow returns a new access token and ID token but does NOT return a new refresh token.
+func (s *authenticationService) AuthenticateWithRefreshToken(refreshToken string) (*APISession, error) {
+
+	// Get Cognito Configuration
+	_, err := s.getCognitoConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting cognito config: %w", err)
+	}
+
+	// Use UserPool client ID — the refresh token originates from the web app
+	// which authenticates against the UserPool, not the TokenPool.
+	clientID := aws.String(s.config.UserPool.AppClientID)
+
+	params := &cognitoidentityprovider.InitiateAuthInput{
+		AuthFlow: types.AuthFlowTypeRefreshToken,
+		AuthParameters: map[string]string{
+			"REFRESH_TOKEN": refreshToken,
+		},
+		ClientId: clientID,
+	}
+
+	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
+
+	authResponse, authError := svc.InitiateAuth(context.Background(), params)
+	if authError != nil {
+		return nil, fmt.Errorf("error authenticating with refresh token: %w", authError)
+	}
+
+	accessToken := authResponse.AuthenticationResult.AccessToken
+	idTokenJwt := authResponse.AuthenticationResult.IdToken
+
+	// Parse JWT and extract Organization for current user
+	token, err := jwt.Parse(*idTokenJwt, nil)
+	if token == nil {
+		return nil, err
+	}
+	claims, _ := token.Claims.(jwt.MapClaims)
+
+	// Cognito REFRESH_TOKEN flow does not return a new refresh token,
+	// so we keep the original.
+	creds := APISession{
+		Token:        *accessToken,
+		RefreshToken: refreshToken,
+		IdToken:      *idTokenJwt,
+		Expiration:   getTokenExpFromClaim(claims),
+		IsRefreshed:  false,
+	}
+
+	s.client.SetSession(creds)
+
+	return &creds, nil
+}
+
 // GetAWSCredsForUser returns set of AWS credentials to allow user to upload data to upload bucket
 func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials {
 
-	// Authenticate with UserPool using API Key and Secret
-	creds := s.client.GetAPIParams()
+	var authResponse *APISession
+	var err error
 
-	authResponse, err := s.Authenticate(creds.ApiKey, creds.ApiSecret)
+	creds := s.client.GetAPIParams()
+	if creds.ApiKey != "" {
+		authResponse, err = s.Authenticate(creds.ApiKey, creds.ApiSecret)
+	} else if s.client.GetSession().RefreshToken != "" {
+		authResponse, err = s.AuthenticateWithRefreshToken(s.client.GetSession().RefreshToken)
+	} else {
+		log.Fatal("No credentials available for authentication")
+	}
 	if err != nil {
 		log.Println("Error authenticating: ", err)
 	}
