@@ -3,6 +3,7 @@ package pennsieve
 import (
     "bytes"
     "context"
+    "encoding/json"
     "fmt"
     "log"
     "net/http"
@@ -15,6 +16,7 @@ type AccountService interface {
     CreateAccount(ctx context.Context, accountId string, accountType string, roleName string, externalId string) (*account.CreateAccountResponse, error)
     GetAccounts(ctx context.Context) ([]account.AccountResponse, error)
     DeleteAccount(ctx context.Context, uuid string, force bool) (*account.DeleteAccountResponse, error)
+    RequestEcrAccess(ctx context.Context, accountId string, accountType string) error
     SetBaseUrl(url string)
 }
 
@@ -118,6 +120,32 @@ func (a *accountService) DeleteAccount(ctx context.Context, uuid string, force b
     }
 
     return &res, nil
+}
+
+func (a *accountService) RequestEcrAccess(ctx context.Context, accountId string, accountType string) error {
+    body, err := json.Marshal(struct {
+        AccountId   string `json:"accountId"`
+        AccountType string `json:"accountType"`
+    }{accountId, accountType})
+    if err != nil {
+        return err
+    }
+
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/compute/resources/app-store/access", a.BaseUrl), bytes.NewReader(body))
+    if err != nil {
+        return err
+    }
+
+    if ctx == nil {
+        ctx = req.Context()
+    }
+
+    if err := a.Client.sendRequest(ctx, req, nil); err != nil {
+        log.Println("AccountService: SendRequest Error in RequestEcrAccess: ", err)
+        return err
+    }
+
+    return nil
 }
 
 func (s *accountService) SetBaseUrl(url string) {

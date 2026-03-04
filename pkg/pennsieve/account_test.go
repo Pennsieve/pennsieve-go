@@ -94,6 +94,30 @@ func (s *AccountServiceTestSuite) TestCreateAccount() {
 	}
 }
 
+func (s *AccountServiceTestSuite) TestRequestEcrAccess() {
+	expectedAccountId := "12345"
+	expectedAccountType := "aws"
+
+	s.API2Server.Mux.HandleFunc("/compute/resources/app-store/access", func(writer http.ResponseWriter, request *http.Request) {
+		s.Equalf("POST", request.Method, "expected method POST, got: %q", request.Method)
+		requestBody := struct {
+			AccountId   string `json:"accountId"`
+			AccountType string `json:"accountType"`
+		}{}
+		data, _ := io.ReadAll(request.Body)
+		err := json.Unmarshal(data, &requestBody)
+		if err != nil {
+			s.Fail("error decoding request body", err)
+		}
+		s.Equal(expectedAccountId, requestBody.AccountId, "unexpected accountId in request body")
+		s.Equal(expectedAccountType, requestBody.AccountType, "unexpected accountType in request body")
+		writer.WriteHeader(http.StatusOK)
+	})
+
+	err := s.TestService.RequestEcrAccess(context.Background(), expectedAccountId, expectedAccountType)
+	s.NoError(err)
+}
+
 func TestAccountServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AccountServiceTestSuite))
 }
