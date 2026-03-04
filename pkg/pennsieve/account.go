@@ -3,6 +3,7 @@ package pennsieve
 import (
     "bytes"
     "context"
+    "encoding/json"
     "fmt"
     "log"
     "net/http"
@@ -122,15 +123,15 @@ func (a *accountService) DeleteAccount(ctx context.Context, uuid string, force b
 }
 
 func (a *accountService) RequestEcrAccess(ctx context.Context, accountId string, accountType string) error {
-    postParams := fmt.Sprintf(`
-		{
-			"accountId": "%s",
-			"accountType": "%s"
-		}`, accountId, accountType)
+    body, err := json.Marshal(struct {
+        AccountId   string `json:"accountId"`
+        AccountType string `json:"accountType"`
+    }{accountId, accountType})
+    if err != nil {
+        return err
+    }
 
-    postParamsPayload := bytes.NewReader([]byte(postParams))
-
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s/compute/resources/app-store/access", a.BaseUrl), postParamsPayload)
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/compute/resources/app-store/access", a.BaseUrl), bytes.NewReader(body))
     if err != nil {
         return err
     }
