@@ -3,7 +3,6 @@ package pennsieve
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,6 +37,21 @@ type APIParams struct {
 type errorResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+// HTTPError is returned by sendRequest when the server responds with a non-2xx
+// status. Callers that need to branch on the status (e.g. fall back on 404)
+// can type-assert on errors.As(err, &HTTPError{}).
+type HTTPError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *HTTPError) Error() string {
+	if e.Message == "" {
+		return fmt.Sprintf("http status %d", e.StatusCode)
+	}
+	return fmt.Sprintf("http status %d: %s", e.StatusCode, e.Message)
 }
 
 type Client struct {
@@ -113,10 +127,10 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 	if res.StatusCode != http.StatusOK {
 		var errRes errorResponse
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
-			return errors.New(errRes.Message)
+			return &HTTPError{StatusCode: res.StatusCode, Message: errRes.Message}
 		}
 
-		return fmt.Errorf("unknown error, status code: %d", res.StatusCode)
+		return &HTTPError{StatusCode: res.StatusCode}
 	}
 
 	if err = json.NewDecoder(res.Body).Decode(&v); err != nil {
@@ -167,10 +181,10 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
 		var errRes errorResponse
 		if err = json.NewDecoder(res.Body).Decode(&errRes); err == nil {
-			return errors.New(errRes.Message)
+			return &HTTPError{StatusCode: res.StatusCode, Message: errRes.Message}
 		}
 
-		return fmt.Errorf("unknown error, status code: %d", res.StatusCode)
+		return &HTTPError{StatusCode: res.StatusCode}
 	}
 
 	if v != nil {
