@@ -70,7 +70,7 @@ func NewManifestService(client PennsieveHTTPClient, baseUrl string) *manifestSer
 // Create Creates a manifest using the Pensnieve service.
 func (s *manifestService) Create(ctx context.Context, requestBody manifest.DTO) (*manifest.PostResponse, error) {
 
-	requestStr := fmt.Sprintf("%s/manifest?dataset_id=%s", s.baseUrl, requestBody.DatasetId)
+	requestStr := fmt.Sprintf("%s/upload/manifest?dataset_id=%s", s.baseUrl, requestBody.DatasetId)
 
 	body, _ := json.Marshal(requestBody)
 	req, err := http.NewRequest("POST", requestStr, bytes.NewBuffer(body))
@@ -97,7 +97,7 @@ func (s *manifestService) Create(ctx context.Context, requestBody manifest.DTO) 
 func (s *manifestService) GetFilesForStatus(ctx context.Context, manifestId string,
 	status manifestFile.Status, continuationToken string, verify bool) (*manifest.GetStatusEndpointResponse, error) {
 
-	requestStr := fmt.Sprintf("%s/manifest/status?manifest_id=%s&status=%s&verify=%t", s.baseUrl, manifestId, status, verify)
+	requestStr := fmt.Sprintf("%s/upload/manifest/status?manifest_id=%s&status=%s&verify=%t", s.baseUrl, manifestId, status, verify)
 	if len(continuationToken) > 0 {
 		requestStr = requestStr + fmt.Sprintf("&continuation_token=%s", continuationToken)
 	}
@@ -130,7 +130,7 @@ func (s *manifestService) SetBaseUrl(url string) {
 // can treat HTTPError{StatusCode=404} as "endpoint not yet deployed" and fall
 // back to the legacy Cognito + upload-bucket path.
 func (s *manifestService) GetStorageCredentials(ctx context.Context, datasetId, manifestNodeId string) (*StorageCredentials, error) {
-	requestStr := fmt.Sprintf("%s/manifest/storage-credentials?dataset_id=%s", s.baseUrl, datasetId)
+	requestStr := fmt.Sprintf("%s/upload/manifest/storage-credentials?dataset_id=%s", s.baseUrl, datasetId)
 
 	body, _ := json.Marshal(map[string]string{"manifestNodeId": manifestNodeId})
 	req, err := http.NewRequest("POST", requestStr, bytes.NewBuffer(body))
@@ -153,7 +153,7 @@ func (s *manifestService) GetStorageCredentials(ctx context.Context, datasetId, 
 // Postgres package/file rows, and returns per-file results. Idempotent.
 // Max batch size is 500 on the server — callers must split larger lists.
 func (s *manifestService) FinalizeManifestFiles(ctx context.Context, datasetId, manifestNodeId string, files []FinalizeFile) (*FinalizeResponse, error) {
-	requestStr := fmt.Sprintf("%s/manifest/files/finalize?dataset_id=%s", s.baseUrl, datasetId)
+	requestStr := fmt.Sprintf("%s/upload/manifest/files/finalize?dataset_id=%s", s.baseUrl, datasetId)
 
 	body, err := json.Marshal(struct {
 		ManifestNodeID string         `json:"manifestNodeId"`
