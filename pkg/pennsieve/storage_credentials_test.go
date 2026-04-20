@@ -28,7 +28,7 @@ func (f *fakeManifest) GetFilesForStatus(_ context.Context, _ string, _ manifest
 	return nil, nil
 }
 func (f *fakeManifest) SetBaseUrl(_ string) {}
-func (f *fakeManifest) FinalizeManifestFiles(_ context.Context, _, _ string, _ []FinalizeFile) (*FinalizeResponse, error) {
+func (f *fakeManifest) FinalizeManifestFiles(_ context.Context, _, _ string, _ []FinalizeFile, _ ...FinalizeOption) (*FinalizeResponse, error) {
 	return nil, nil
 }
 func (f *fakeManifest) GetStorageCredentials(_ context.Context, _, _ string) (*StorageCredentials, error) {
@@ -115,8 +115,8 @@ func (b *blockingManifest) GetFilesForStatus(ctx context.Context, id string, s m
 	return b.inner.GetFilesForStatus(ctx, id, s, ct, v)
 }
 func (b *blockingManifest) SetBaseUrl(u string) { b.inner.SetBaseUrl(u) }
-func (b *blockingManifest) FinalizeManifestFiles(ctx context.Context, d, m string, f []FinalizeFile) (*FinalizeResponse, error) {
-	return b.inner.FinalizeManifestFiles(ctx, d, m, f)
+func (b *blockingManifest) FinalizeManifestFiles(ctx context.Context, d, m string, f []FinalizeFile, opts ...FinalizeOption) (*FinalizeResponse, error) {
+	return b.inner.FinalizeManifestFiles(ctx, d, m, f, opts...)
 }
 func (b *blockingManifest) GetStorageCredentials(ctx context.Context, d, m string) (*StorageCredentials, error) {
 	b.started.Add(1)
