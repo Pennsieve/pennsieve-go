@@ -21,8 +21,36 @@ type ManifestService interface {
 	GetFilesForStatus(ctx context.Context, manifestId string,
 		status manifestFile.Status, continuationToken string, verify bool) (*manifest.GetStatusEndpointResponse, error)
 	GetStorageCredentials(ctx context.Context, datasetId, manifestNodeId string) (*StorageCredentials, error)
-	FinalizeManifestFiles(ctx context.Context, datasetId, manifestNodeId string, files []FinalizeFile) (*FinalizeResponse, error)
+	FinalizeManifestFiles(ctx context.Context, datasetId, manifestNodeId string, files []FinalizeFile, opts ...FinalizeOption) (*FinalizeResponse, error)
 	SetBaseUrl(url string)
+}
+
+// FinalizeOption configures a FinalizeManifestFiles call. Use the provided
+// With* helpers (e.g. WithOnConflict) to set values. Unknown options are
+// forward-compatible: older SDK versions ignore any options they do not
+// recognize, so servers can add new finalize fields without breaking
+// existing clients.
+type FinalizeOption func(*finalizeOptions)
+
+type finalizeOptions struct {
+	onConflict string
+}
+
+// FinalizeOnConflict values accepted by the server. Keep in sync with the
+// validOnConflict switch in upload-service-v2's finalize_files.go.
+const (
+	FinalizeOnConflictKeepBoth = "keepBoth"
+	FinalizeOnConflictReplace  = "replace"
+	FinalizeOnConflictFail     = "fail"
+)
+
+// WithOnConflict tells the server how to resolve name collisions between
+// incoming uploads and existing non-deleted packages under the same
+// (dataset, folder) tuple. Default (when omitted) is keepBoth — append
+// " (N)" to the new upload's name, preserving the existing package.
+// Only applies to file packages; folders always get-or-create by name.
+func WithOnConflict(v string) FinalizeOption {
+	return func(o *finalizeOptions) { o.onConflict = v }
 }
 
 // StorageCredentials describes a short-lived STS session scoped to a specific
@@ -152,13 +180,23 @@ func (s *manifestService) GetStorageCredentials(ctx context.Context, datasetId, 
 // uploaded direct-to-storage. The server verifies each object, creates
 // Postgres package/file rows, and returns per-file results. Idempotent.
 // Max batch size is 500 on the server — callers must split larger lists.
-func (s *manifestService) FinalizeManifestFiles(ctx context.Context, datasetId, manifestNodeId string, files []FinalizeFile) (*FinalizeResponse, error) {
+//
+// Optional FinalizeOptions (e.g. WithOnConflict) tune server-side behavior
+// for the batch. Omitting options preserves legacy behavior: name collisions
+// auto-rename the new upload to " (N)".
+func (s *manifestService) FinalizeManifestFiles(ctx context.Context, datasetId, manifestNodeId string, files []FinalizeFile, opts ...FinalizeOption) (*FinalizeResponse, error) {
+	var o finalizeOptions
+	for _, fn := range opts {
+		fn(&o)
+	}
+
 	requestStr := fmt.Sprintf("%s/upload/manifest/files/finalize?dataset_id=%s", s.baseUrl, datasetId)
 
 	body, err := json.Marshal(struct {
 		ManifestNodeID string         `json:"manifestNodeId"`
 		Files          []FinalizeFile `json:"files"`
-	}{manifestNodeId, files})
+		OnConflict     string         `json:"onConflict,omitempty"`
+	}{manifestNodeId, files, o.onConflict})
 	if err != nil {
 		return nil, err
 	}
