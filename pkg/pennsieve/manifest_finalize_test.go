@@ -92,7 +92,6 @@ func (s *FinalizeManifestFilesTestSuite) TestFinalizeWithOnConflict() {
 func TestFinalizeOptionConstants(t *testing.T) {
 	assert.Equal(t, "keepBoth", FinalizeOnConflictKeepBoth)
 	assert.Equal(t, "replace", FinalizeOnConflictReplace)
-	assert.Equal(t, "fail", FinalizeOnConflictFail)
 }
 
 func TestFinalizeManifestFilesService(t *testing.T) {

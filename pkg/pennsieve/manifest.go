@@ -41,7 +41,6 @@ type finalizeOptions struct {
 const (
 	FinalizeOnConflictKeepBoth = "keepBoth"
 	FinalizeOnConflictReplace  = "replace"
-	FinalizeOnConflictFail     = "fail"
 )
 
 // WithOnConflict tells the server how to resolve name collisions between
