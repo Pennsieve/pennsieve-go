@@ -121,14 +121,13 @@ func TestAuthenticationServiceSuite(t *testing.T) {
 	suite.Run(t, new(AuthenticationServiceTestSuite))
 }
 
-// Tests that in default deployment case we are not introducing a custom
-// endpoint resolver for AWS
+// Tests that in the default deployment case we do not configure custom Cognito
+// endpoints, so clients fall back to the real AWS endpoints.
 func TestProdEndpointResolver(t *testing.T) {
 	client := noOpPennsieveClient{}
 	service := NewAuthenticationService(client, "https://example.com")
-	//goland:noinspection GoDeprecation
-	assert.Nil(t, (*service).awsConfig.EndpointResolver)
-	assert.Nil(t, (*service).awsConfig.EndpointResolverWithOptions)
+	assert.Empty(t, service.idpEndpoint)
+	assert.Empty(t, service.identityEndpoint)
 }
 
 type noOpPennsieveClient struct{}

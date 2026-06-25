@@ -51,7 +51,7 @@ func (s *ManifestServiceTestSuite) TestCreateManifest() {
 		Status: manifest.Initiated,
 	}
 
-	s.API2Server.Mux.HandleFunc("/manifest", func(writer http.ResponseWriter, request *http.Request) {
+	s.API2Server.Mux.HandleFunc("/upload/manifest", func(writer http.ResponseWriter, request *http.Request) {
 		s.Equal("POST", request.Method, "unexpected http method for Create Manifest")
 		err := request.ParseForm()
 		if s.NoError(err) {
