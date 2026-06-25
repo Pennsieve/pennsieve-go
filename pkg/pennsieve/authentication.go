@@ -53,36 +53,16 @@ type AuthenticationService interface {
 func NewAuthenticationService(client PennsieveHTTPClient, baseUrl string) *authenticationService {
 	cfg := newAwsConfig()
 	return &authenticationService{
-		client:    client,
-		BaseUrl:   baseUrl,
-		awsConfig: cfg,
+		client:           client,
+		BaseUrl:          baseUrl,
+		awsConfig:        cfg,
+		idpEndpoint:      AWSEndpoints.IdentityProviderEndpoint,
+		identityEndpoint: AWSEndpoints.IdentityEndpoint,
 	}
 }
 
 func newAwsConfig() aws.Config {
-	loadOptions := []func(*config.LoadOptions) error{config.WithRegion("us-east-1")}
-
-	if !AWSEndpoints.IsEmpty() {
-		endpointMap := map[string]string{
-			cognitoidentityprovider.ServiceID: AWSEndpoints.IdentityProviderEndpoint,
-			cognitoidentity.ServiceID:         AWSEndpoints.IdentityEndpoint,
-		}
-		endpointResolver := aws.EndpointResolverWithOptionsFunc(func(service string, region string, options ...interface{}) (aws.Endpoint, error) {
-			if endpoint := endpointMap[service]; endpoint != "" {
-				return aws.Endpoint{
-					URL: endpoint,
-				}, nil
-			}
-			// Returning EndpointNotFoundError will cause service to fallback to default
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		})
-		loadOptions = append(loadOptions, config.WithEndpointResolverWithOptions(endpointResolver))
-
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		loadOptions...,
-	)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,6 +74,32 @@ type authenticationService struct {
 	config    authentication.CognitoConfig
 	BaseUrl   string // BaseUrl is exposed in Auth service as we need to update to check new auth when switching profiles
 	awsConfig aws.Config
+	// idpEndpoint and identityEndpoint optionally override the Cognito service
+	// endpoints (used in tests to target a mock server). They are captured from
+	// AWSEndpoints at construction, so later mutations only affect subsequent
+	// NewAuthenticationService calls, matching the documented behavior.
+	idpEndpoint      string
+	identityEndpoint string
+}
+
+// newIdentityProviderClient builds a Cognito Identity Provider client, applying
+// a custom BaseEndpoint when one was configured via AWSEndpoints.
+func (s *authenticationService) newIdentityProviderClient() *cognitoidentityprovider.Client {
+	return cognitoidentityprovider.NewFromConfig(s.awsConfig, func(o *cognitoidentityprovider.Options) {
+		if s.idpEndpoint != "" {
+			o.BaseEndpoint = aws.String(s.idpEndpoint)
+		}
+	})
+}
+
+// newIdentityClient builds a Cognito Identity client, applying a custom
+// BaseEndpoint when one was configured via AWSEndpoints.
+func (s *authenticationService) newIdentityClient() *cognitoidentity.Client {
+	return cognitoidentity.NewFromConfig(s.awsConfig, func(o *cognitoidentity.Options) {
+		if s.identityEndpoint != "" {
+			o.BaseEndpoint = aws.String(s.identityEndpoint)
+		}
+	})
 }
 
 // getCognitoConfig returns cognito urls from cloud.
@@ -137,7 +143,7 @@ func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 		ClientId: aws.String(s.config.TokenPool.AppClientID),
 	}
 
-	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
+	svc := s.newIdentityProviderClient()
 	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
 
@@ -186,7 +192,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 		ClientId: clientID,
 	}
 
-	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
+	svc := s.newIdentityProviderClient()
 
 	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
@@ -276,7 +282,7 @@ func (s *authenticationService) AuthenticateWithRefreshToken(refreshToken string
 		ClientId: clientID,
 	}
 
-	svc := cognitoidentityprovider.NewFromConfig(s.awsConfig)
+	svc := s.newIdentityProviderClient()
 
 	authResponse, authError := svc.InitiateAuth(context.Background(), params)
 	if authError != nil {
@@ -329,7 +335,7 @@ func (s *authenticationService) GetAWSCredsForUser() *IdentityTypes.Credentials 
 	poolId := s.config.IdentityPool.ID
 	poolResource := fmt.Sprintf("cognito-idp.us-east-1.amazonaws.com/%s", s.config.TokenPool.ID)
 
-	svc := cognitoidentity.NewFromConfig(s.awsConfig)
+	svc := s.newIdentityClient()
 
 	// Get an identity from Cognito's identity pool using authResponse from userpool
 	idRes, err := svc.GetId(context.Background(), &cognitoidentity.GetIdInput{
