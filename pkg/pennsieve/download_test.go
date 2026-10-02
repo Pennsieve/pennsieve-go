@@ -113,6 +113,16 @@ func (s *DownloadServiceTestSuite) TestClientHeaderOnlyWhenNamed() {
 	s.NoError(err)
 }
 
+func (s *DownloadServiceTestSuite) TestUpdateparamsMovesToTheNewHost() {
+	var requests []download.ManifestRequest
+	s.serveManifest(&requests)
+	client := NewClient(APIParams{ApiHost2: "http://127.0.0.1:1", ClientName: "pennsieve-agent/1.4.2"})
+	client.Updateparams(APIParams{ApiHost2: s.API2Server.Server.URL, ClientName: "pennsieve-agent/1.4.2"})
+	_, err := client.Download.GetManifestPage(context.Background(), "N:dataset:1", download.ManifestRequest{})
+	s.NoError(err)
+	s.Len(requests, 1)
+}
+
 func TestDownloadService(t *testing.T) {
 	suite.Run(t, new(DownloadServiceTestSuite))
 }

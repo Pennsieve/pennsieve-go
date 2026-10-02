@@ -231,5 +231,6 @@ func (c *Client) Updateparams(params APIParams) {
 	c.Manifest.SetBaseUrl(params.ApiHost2)
 	c.Account.SetBaseUrl(params.ApiHost2)
 	c.Package.SetBaseUrl(params.ApiHost, params.ApiHost2)
+	c.Download.SetBaseUrl(params.ApiHost2)
 
 }
