@@ -21,6 +21,7 @@ type DownloadService interface {
 	// used, and the whole selection is never held in memory. An error from
 	// fn stops the walk and is returned.
 	WalkManifest(ctx context.Context, datasetId string, req download.ManifestRequest, fn func(*download.ManifestPage) error) error
+	SetBaseUrl(url string)
 }
 
 type downloadService struct {
@@ -30,6 +31,10 @@ type downloadService struct {
 
 func NewDownloadService(client PennsieveHTTPClient, baseUrl string) *downloadService {
 	return &downloadService{client: client, BaseUrl: baseUrl}
+}
+
+func (s *downloadService) SetBaseUrl(url string) {
+	s.BaseUrl = url
 }
 
 func (s *downloadService) GetManifestPage(ctx context.Context, datasetId string, manifestReq download.ManifestRequest) (*download.ManifestPage, error) {
