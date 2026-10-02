@@ -13,6 +13,7 @@ type DiscoverService interface {
 	GetDatasetByVersion(ctx context.Context, datasetId int32, versionId int32) (*discover.GetDatasetByVersionResponse, error)
 	GetDatasetMetadataByVersion(ctx context.Context, datasetId int32, versionId int32) (*discover.GetDatasetMetadataByVersionResponse, error)
 	GetDatasetFileByVersion(ctx context.Context, datasetId int32, versionId int32, filename string) (*discover.GetDatasetFileByVersionResponse, error)
+	SetBaseUrl(url string)
 }
 
 type discoverService struct {
@@ -91,4 +92,8 @@ func (d *discoverService) GetDatasetFileByVersion(ctx context.Context, datasetId
 	}
 
 	return &res, nil
+}
+
+func (d *discoverService) SetBaseUrl(url string) {
+	d.BaseUrl = url
 }
