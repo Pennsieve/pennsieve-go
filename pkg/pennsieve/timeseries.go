@@ -13,6 +13,7 @@ type TimeseriesService interface {
 	GetChannels(ctx context.Context, datasetId string, packageId string) ([]timeseries.GetChannelsResponse, error)
 	GetRangeBlocks(ctx context.Context, datasetId string, packageId string,
 		startTime uint64, endTime uint64, channelId string) (*timeseries.GetRangeResponse, error)
+	SetBaseUrl(url string)
 }
 
 type timeseriesService struct {
@@ -77,4 +78,8 @@ func (s *timeseriesService) GetRangeBlocks(ctx context.Context, datasetId string
 
 	return &res, nil
 
+}
+
+func (s *timeseriesService) SetBaseUrl(url string) {
+	s.BaseUrl = url
 }

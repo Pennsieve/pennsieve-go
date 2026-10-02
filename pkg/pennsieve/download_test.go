@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/download"
@@ -125,4 +126,31 @@ func (s *DownloadServiceTestSuite) TestUpdateparamsMovesToTheNewHost() {
 
 func TestDownloadService(t *testing.T) {
 	suite.Run(t, new(DownloadServiceTestSuite))
+}
+
+// Every service follows a profile switch to the new hosts.
+func TestUpdateparamsMovesEveryService(t *testing.T) {
+	c := NewClient(APIParams{ApiHost: "https://api.old", ApiHost2: "https://api2.old"})
+	c.Updateparams(APIParams{ApiHost: "https://api.new", ApiHost2: "https://api2.new"})
+
+	d := c.Dataset.(*datasetService)
+	p := c.Package.(*packageService)
+	hosts := map[string]string{
+		"Dataset":      d.BaseUrl,
+		"Dataset2":     d.BaseUrl2,
+		"Discover":     c.Discover.(*discoverService).BaseUrl,
+		"Timeseries":   c.Timeseries.(*timeseriesService).BaseUrl,
+		"Manifest":     c.Manifest.(*manifestService).baseUrl,
+		"Account":      c.Account.(*accountService).BaseUrl,
+		"Package":      p.baseUrl,
+		"Package2":     p.baseUrl2,
+		"Download":     c.Download.(*downloadService).BaseUrl,
+		"User":         c.User.(*userService).BaseUrl,
+		"Organization": c.Organization.(*organizationService).baseUrl,
+	}
+	for name, host := range hosts {
+		if strings.Contains(host, ".old") {
+			t.Errorf("%s still calls %s after Updateparams", name, host)
+		}
+	}
 }

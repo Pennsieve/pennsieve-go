@@ -16,7 +16,7 @@ type DatasetService interface {
 	Get(ctx context.Context, id string) (*dataset.GetDatasetResponse, error)
 	Find(ctx context.Context, limit int, query string) (*dataset.ListDatasetResponse, error)
 	List(ctx context.Context, limit int, offset int) (*dataset.ListDatasetResponse, error)
-	SetBaseUrl(url string)
+	SetBaseUrl(url string, url2 string)
 	Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error)
 	GetManifest(ctx context.Context, nodeId string) (*dataset.GetManifestResponse, error)
 }
@@ -133,8 +133,9 @@ func (d *datasetService) GetManifest(ctx context.Context, nodeId string) (*datas
 	return &res, nil
 }
 
-func (d *datasetService) SetBaseUrl(url string) {
+func (d *datasetService) SetBaseUrl(url string, url2 string) {
 	d.BaseUrl = url
+	d.BaseUrl2 = url2
 }
 
 func (d *datasetService) Create(ctx context.Context, name, description, tags string) (*dataset.CreateDatasetResponse, error) {
