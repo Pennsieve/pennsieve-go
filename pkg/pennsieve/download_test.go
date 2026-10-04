@@ -124,6 +124,124 @@ func (s *DownloadServiceTestSuite) TestUpdateparamsMovesToTheNewHost() {
 	s.Len(requests, 1)
 }
 
+func (s *DownloadServiceTestSuite) TestManifestOfASavedSelection() {
+	var requests []download.ManifestRequest
+	s.serveManifest(&requests)
+	_, err := s.client.Download.GetManifestPage(context.Background(), "N:dataset:1",
+		download.ManifestRequest{SelectionId: "sel_aaaaaaaaaaaaaaaaaaaaaaaaaa"})
+	s.NoError(err)
+	s.Equal([]download.ManifestRequest{{SelectionId: "sel_aaaaaaaaaaaaaaaaaaaaaaaaaa"}}, requests)
+}
+
+// servePublicManifest answers two pages of a published selection, recording
+// each request's raw JSON.
+func (s *DownloadServiceTestSuite) servePublicManifest(bodies *[]map[string]any) {
+	s.API2Server.Mux.HandleFunc("/downloads/public/manifests", func(w http.ResponseWriter, r *http.Request) {
+		s.Equal("POST", r.Method)
+		s.Empty(r.URL.Query(), "published data is not scoped to a workspace or dataset")
+		s.Equal("pennsieve-agent/1.4.2", r.Header.Get("X-Pennsieve-Client"))
+		var body map[string]any
+		s.NoError(json.NewDecoder(r.Body).Decode(&body))
+		*bodies = append(*bodies, body)
+
+		page := download.PublicManifestPage{
+			Header: download.PublicManifestHeader{DatasetId: 5347, Version: 2, Count: 3, Size: 300},
+		}
+		switch body["cursor"] {
+		case nil:
+			page.Data = []download.PublicManifestFile{
+				{FileName: "a.csv", Path: []string{"study"}, URL: "https://s3/a?sig", Size: 100, SHA256: "aa"},
+				{FileName: "b.csv", Path: []string{"study"}, URL: "https://s3/b?sig", Size: 100},
+			}
+			page.Next = "p1"
+		case "p1":
+			page.Data = []download.PublicManifestFile{{FileName: "c.csv", URL: "https://s3/c?sig", Size: 100}}
+			page.Skipped = []download.SkippedFile{{FileName: "old.bin", Reason: "no_object_version"}}
+		default:
+			s.Failf("unexpected cursor", "%v", body["cursor"])
+		}
+		s.NoError(json.NewEncoder(w).Encode(page))
+	})
+}
+
+func (s *DownloadServiceTestSuite) TestWalkPublicManifestFollowsEveryPage() {
+	var bodies []map[string]any
+	s.servePublicManifest(&bodies)
+	var names []string
+	var skipped []string
+	err := s.client.Download.WalkPublicManifest(context.Background(),
+		download.PublicManifestRequest{DatasetId: 5347, Paths: []string{"study"}},
+		func(page *download.PublicManifestPage) error {
+			s.Equal(2, page.Header.Version, "the version resolved for latest")
+			for _, f := range page.Data {
+				names = append(names, f.FileName)
+			}
+			for _, f := range page.Skipped {
+				skipped = append(skipped, f.FileName+":"+f.Reason)
+			}
+			return nil
+		})
+	s.NoError(err)
+	s.Equal([]string{"a.csv", "b.csv", "c.csv"}, names)
+	s.Equal([]string{"old.bin:no_object_version"}, skipped)
+	s.Equal([]map[string]any{
+		{"datasetId": float64(5347), "paths": []any{"study"}},
+		{"datasetId": float64(5347), "paths": []any{"study"}, "cursor": "p1"},
+	}, bodies, "no version is the latest")
+}
+
+func (s *DownloadServiceTestSuite) TestPublicManifestOfASavedSelection() {
+	var bodies []map[string]any
+	s.servePublicManifest(&bodies)
+	page, err := s.client.Download.GetPublicManifestPage(context.Background(),
+		download.PublicManifestRequest{SelectionId: "sel_bbbbbbbbbbbbbbbbbbbbbbbbbb"})
+	if s.NoError(err) {
+		s.Equal("aa", page.Data[0].SHA256)
+	}
+	s.Equal([]map[string]any{{"selectionId": "sel_bbbbbbbbbbbbbbbbbbbbbbbbbb"}}, bodies,
+		"only the selection: the service rejects it with a dataset or paths")
+}
+
+func (s *DownloadServiceTestSuite) TestGetSelection() {
+	s.API2Server.Mux.HandleFunc("/downloads/selections/", func(w http.ResponseWriter, r *http.Request) {
+		s.Equal("GET", r.Method)
+		switch r.URL.Path {
+		case "/downloads/selections/sel_aaaaaaaaaaaaaaaaaaaaaaaaaa":
+			_, _ = w.Write([]byte(`{"id":"sel_aaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"workspace","datasetNodeId":"N:dataset:1","expiresAt":"2026-10-06T12:00:00.000Z"}`))
+		case "/downloads/selections/sel_bbbbbbbbbbbbbbbbbbbbbbbbbb":
+			_, _ = w.Write([]byte(`{"id":"sel_bbbbbbbbbbbbbbbbbbbbbbbbbb","kind":"public","datasetId":5347,"version":2,"expiresAt":"2026-10-06T12:00:00.000Z"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"selection not found, or expired; select the files again"}`))
+		}
+	})
+
+	sel, err := s.client.Download.GetSelection(context.Background(), "sel_aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	if s.NoError(err) {
+		s.Equal(download.Selection{
+			Id: "sel_aaaaaaaaaaaaaaaaaaaaaaaaaa", Kind: download.SelectionWorkspace,
+			DatasetNodeId: "N:dataset:1", ExpiresAt: "2026-10-06T12:00:00.000Z",
+		}, *sel)
+	}
+
+	sel, err = s.client.Download.GetSelection(context.Background(), "sel_bbbbbbbbbbbbbbbbbbbbbbbbbb")
+	if s.NoError(err) {
+		s.Equal(download.SelectionPublic, sel.Kind)
+		s.Equal(int64(5347), sel.DatasetId)
+		s.Equal(2, sel.Version)
+	}
+
+	_, err = s.client.Download.GetSelection(context.Background(), "sel_cccccccccccccccccccccccccc")
+	var httpErr *HTTPError
+	if s.ErrorAs(err, &httpErr) {
+		s.Equal(http.StatusNotFound, httpErr.StatusCode)
+		s.Contains(httpErr.Message, "select the files again")
+	}
+
+	_, err = s.client.Download.GetSelection(context.Background(), "../manifests")
+	s.ErrorAs(err, &httpErr, "the id stays one path segment")
+}
+
 func TestDownloadService(t *testing.T) {
 	suite.Run(t, new(DownloadServiceTestSuite))
 }
