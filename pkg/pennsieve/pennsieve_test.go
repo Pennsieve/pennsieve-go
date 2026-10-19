@@ -3,7 +3,7 @@ package pennsieve
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/authentication"
 	"maps"
 	"net/http"

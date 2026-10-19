@@ -15,7 +15,7 @@ import (
 	IdentityTypes "github.com/aws/aws-sdk-go-v2/service/cognitoidentity/types"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/authentication"
 )
 
@@ -157,7 +157,7 @@ func (s *authenticationService) ReAuthenticate() (*APISession, error) {
 	refreshToken := authResponse.AuthenticationResult.RefreshToken
 
 	// Parse JWT and extract Organization for current user
-	token, err := jwt.Parse(*idTokenJwt, nil)
+	token, _, err := jwt.NewParser().ParseUnverified(*idTokenJwt, jwt.MapClaims{})
 	if token == nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 	refreshToken := authResponse.AuthenticationResult.RefreshToken
 
 	// Parse JWT and extract Organization for current user
-	token, err := jwt.Parse(*idTokenJwt, nil)
+	token, _, err := jwt.NewParser().ParseUnverified(*idTokenJwt, jwt.MapClaims{})
 	if token == nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func (s *authenticationService) AuthenticateWithRefreshToken(refreshToken string
 	idTokenJwt := authResponse.AuthenticationResult.IdToken
 
 	// Parse JWT and extract Organization for current user
-	token, err := jwt.Parse(*idTokenJwt, nil)
+	token, _, err := jwt.NewParser().ParseUnverified(*idTokenJwt, jwt.MapClaims{})
 	if token == nil {
 		return nil, err
 	}
