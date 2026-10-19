@@ -3,6 +3,12 @@ package pennsieve
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
@@ -11,11 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/golang-jwt/jwt"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/authentication"
-	"log"
-	"math"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // AWSEndpoints can be used to set custom endpoints for Cognito.
@@ -242,7 +243,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 
 	orgIdInt, err := strconv.Atoi(orgId)
 	if err != nil {
-		log.Panicf("OrgID: %q is not an int\n", orgIdInt)
+		log.Panicf("OrgID: %q is not an int\n", orgId)
 
 	}
 	creds := APISession{

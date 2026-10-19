@@ -1,8 +1,7 @@
 module github.com/pennsieve/pennsieve-go
 
-go 1.24
+go 1.27.2
 
-toolchain go1.24.0
 
 //replace github.com/pennsieve/pennsieve-go-api => ../pennsieve-go-api
 

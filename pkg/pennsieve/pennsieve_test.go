@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/pennsieve/pennsieve-go/pkg/pennsieve/models/authentication"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,9 +72,7 @@ func NewTestJWTWithClaims(t *testing.T, customClaims map[string]any, sessionTTL 
 	claims := jwt.MapClaims{
 		"exp": time.Now().Add(sessionTTL).UTC().Unix(),
 	}
-	for k, v := range customClaims {
-		claims[k] = v
-	}
+	maps.Copy(claims, customClaims)
 	idToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	idTokenString, err := idToken.SignedString([]byte("test-signing-key"))
