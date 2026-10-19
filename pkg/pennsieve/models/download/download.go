@@ -16,11 +16,13 @@ type ManifestRequest struct {
 }
 
 // ManifestPage is one page of a manifest. Header counts the whole selection;
-// Data and Blocked are this page's files. Next is empty on the last page.
+// Data, Blocked and Pending are this page's files. Next is empty on the last
+// page.
 type ManifestPage struct {
 	Header  ManifestHeader `json:"header"`
 	Data    []ManifestFile `json:"data"`
 	Blocked []BlockedFile  `json:"blocked"`
+	Pending []PendingFile  `json:"pending"`
 	Next    string         `json:"next,omitempty"`
 }
 
@@ -28,6 +30,7 @@ type ManifestHeader struct {
 	Count        int   `json:"count"`
 	Size         int64 `json:"size"`
 	BlockedCount int   `json:"blockedCount"`
+	PendingCount int   `json:"pendingCount"`
 	// ExpiresAt is when this page's first link expires (ISO 8601).
 	ExpiresAt string `json:"expiresAt"`
 }
@@ -47,6 +50,15 @@ type ManifestFile struct {
 
 // BlockedFile is left out because it didn't pass the malware scan.
 type BlockedFile struct {
+	NodeId      string `json:"nodeId"`
+	FileName    string `json:"fileName"`
+	PackageName string `json:"packageName"`
+	ScanStatus  string `json:"scanStatus"`
+}
+
+// PendingFile is left out because its malware scan hasn't finished: it can
+// be downloaded once the scan is done.
+type PendingFile struct {
 	NodeId      string `json:"nodeId"`
 	FileName    string `json:"fileName"`
 	PackageName string `json:"packageName"`
