@@ -51,7 +51,7 @@ func TestStorageCredsProvider_CachesValidCreds(t *testing.T) {
 	}}
 	p := &StorageCredentialsProvider{Manifest: fm}
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, err := p.Retrieve(context.Background())
 		assert.NoError(t, err)
 	}
@@ -84,12 +84,10 @@ func TestStorageCredsProvider_SingleFlight(t *testing.T) {
 
 	const n = 10
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range n {
+		wg.Go(func() {
 			_, _ = p.Retrieve(context.Background())
-		}()
+		})
 	}
 
 	// Wait until the first Retrieve has started its network call.

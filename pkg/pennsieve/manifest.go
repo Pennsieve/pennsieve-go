@@ -290,7 +290,7 @@ func (p *StorageCredentialsProvider) cachedIfValid() (aws.Credentials, bool) {
 // dataset) are returned immediately so the caller can fall back.
 func (p *StorageCredentialsProvider) fetchWithRetry(ctx context.Context) (*StorageCredentials, error) {
 	var lastErr error
-	for attempt := 0; attempt < credsFetchAttempts; attempt++ {
+	for attempt := range credsFetchAttempts {
 		c, err := p.Manifest.GetStorageCredentials(ctx, p.DatasetID, p.ManifestNodeID)
 		if err == nil {
 			return c, nil

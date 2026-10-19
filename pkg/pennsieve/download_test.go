@@ -52,7 +52,7 @@ func (s *DownloadServiceTestSuite) serveManifest(requests *[]download.ManifestRe
 		s.True(ok, "unexpected cursor %q", req.Cursor)
 		page.Header = download.ManifestHeader{Count: 6, Size: 600}
 		n := len(*requests)
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			id := int64((n-1)*2 + i + 1)
 			page.Data = append(page.Data, download.ManifestFile{
 				NodeId: fmt.Sprintf("N:package:%d", id), FileId: id, FileName: fmt.Sprintf("f%d.csv", id),

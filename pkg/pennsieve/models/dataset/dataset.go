@@ -19,7 +19,7 @@ type GetDatasetResponse struct {
 	Storage            int                `json:"storage"`
 	Status             Status             `json:"status"`
 	Publication        Publication        `json:"publication"`
-	Properties         []interface{}      `json:"properties"`
+	Properties         []any              `json:"properties"`
 	CanPublish         bool               `json:"canPublish"`
 	Locked             bool               `json:"locked"`
 	BannerPresignedURL string             `json:"bannerPresignedUrl"`
@@ -68,7 +68,7 @@ type PropsWithCategory struct {
 type Children struct {
 	Content    ChildrenContent     `json:"content"`
 	Properties []PropsWithCategory `json:"properties"`
-	Children   []interface{}       `json:"children"`
+	Children   []any               `json:"children"`
 	Storage    int                 `json:"storage"`
 	Extension  string              `json:"extension,omitempty"`
 }
@@ -81,12 +81,12 @@ type ListDatasetResponse struct {
 }
 
 type CreateDatasetResponse struct {
-	Content      Content       `json:"content"`
-	Organization string        `json:"organization"`
-	Publication  Publication   `json:"publication,omitempty"`
-	Properties   []interface{} `json:"properties"`
-	CanPublish   bool          `json:"canPublish"`
-	Locked       bool          `json:"locked"`
+	Content      Content     `json:"content"`
+	Organization string      `json:"organization"`
+	Publication  Publication `json:"publication"`
+	Properties   []any       `json:"properties"`
+	CanPublish   bool        `json:"canPublish"`
+	Locked       bool        `json:"locked"`
 }
 type CollaboratorCounts struct {
 	Users         int `json:"users"`
@@ -112,8 +112,8 @@ type Datasets struct {
 	CollaboratorCounts CollaboratorCounts `json:"collaboratorCounts"`
 	Storage            int                `json:"storage"`
 	Status             Status             `json:"status"`
-	Properties         []interface{}      `json:"properties"`
+	Properties         []any              `json:"properties"`
 	CanPublish         bool               `json:"canPublish"`
 	Locked             bool               `json:"locked"`
-	Publication        Publication        `json:"publication,omitempty"`
+	Publication        Publication        `json:"publication"`
 }

@@ -132,11 +132,11 @@ func TestProdEndpointResolver(t *testing.T) {
 
 type noOpPennsieveClient struct{}
 
-func (noOpPennsieveClient) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (noOpPennsieveClient) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v any) error {
 	panic("implement me")
 }
 
-func (noOpPennsieveClient) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (noOpPennsieveClient) sendRequest(ctx context.Context, req *http.Request, v any) error {
 	panic("implement me")
 }
 

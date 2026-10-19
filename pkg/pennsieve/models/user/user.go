@@ -20,7 +20,7 @@ type User struct {
 	PreferredOrganization   string         `json:"preferredOrganization"`
 	Orcid                   Orcid          `json:"orcid"`
 	PennsieveTermsOfService TermsOfService `json:"pennsieveTermsOfService"`
-	CustomTermsOfService    []interface{}  `json:"customTermsOfService"`
+	CustomTermsOfService    []any          `json:"customTermsOfService"`
 	IntID                   int            `json:"intId"`
 }
 

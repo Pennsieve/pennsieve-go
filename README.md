@@ -25,7 +25,7 @@ go get github.com/pennsieve/pennsieve-go
 
 ## Requirements
 
-- Go 1.23 or later
+- Go 1.27.2 or later
 - Valid Pennsieve account and API credentials
 
 ## Quick Start

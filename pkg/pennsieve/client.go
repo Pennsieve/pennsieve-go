@@ -105,8 +105,8 @@ func NewClient(params APIParams) *Client {
 }
 
 type PennsieveHTTPClient interface {
-	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error
-	sendRequest(ctx context.Context, req *http.Request, v interface{}) error
+	sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v any) error
+	sendRequest(ctx context.Context, req *http.Request, v any) error
 	GetAPIParams() *APIParams
 	GetSession() APISession
 	SetSession(s APISession)
@@ -115,7 +115,7 @@ type PennsieveHTTPClient interface {
 }
 
 // sendUnauthenticatedRequest sends a http request without authentication
-func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Request, v any) error {
 	req = req.WithContext(ctx)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -147,7 +147,7 @@ func (c *Client) sendUnauthenticatedRequest(ctx context.Context, req *http.Reque
 
 // SendRequest sends a http request with the appropriate Pennsieve headers and auth.
 // The method checks if the token is valid and refreshes the token if not.
-func (c *Client) sendRequest(ctx context.Context, req *http.Request, v interface{}) error {
+func (c *Client) sendRequest(ctx context.Context, req *http.Request, v any) error {
 
 	// Check Expiration Time for current session and refresh if necessary
 	if time.Now().After(c.APISession.Expiration.Add(-5 * time.Minute)) {
