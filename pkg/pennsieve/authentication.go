@@ -243,8 +243,7 @@ func (s *authenticationService) Authenticate(apiKey string, apiSecret string) (*
 
 	orgIdInt, err := strconv.Atoi(orgId)
 	if err != nil {
-		log.Panicf("OrgID: %q is not an int\n", orgId)
-
+		log.Panicf("OrgID: %q is not an int", orgId)
 	}
 	creds := APISession{
 		Token:        *accessToken,
